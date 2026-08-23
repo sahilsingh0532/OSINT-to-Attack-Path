@@ -1,0 +1,372 @@
+@import "tailwindcss";
+
+/* ============================================
+   OSINT-to-Attack-Path — Cybersecurity Theme
+   ============================================ */
+
+@theme {
+  /* Cybersecurity dark palette */
+  --color-bg-primary: #0a0e1a;
+  --color-bg-secondary: #111827;
+  --color-bg-card: #1a1f36;
+  --color-bg-card-hover: #232946;
+  --color-bg-sidebar: #0d1117;
+  --color-bg-input: #1e2538;
+  --color-border: #2a3150;
+  --color-border-light: #374068;
+
+  /* Accent colors */
+  --color-cyber-blue: #00d4ff;
+  --color-cyber-green: #00ff88;
+  --color-cyber-purple: #a855f7;
+  --color-cyber-orange: #f59e0b;
+  --color-cyber-red: #ef4444;
+  --color-cyber-teal: #14b8a6;
+
+  /* Risk severity */
+  --color-risk-critical: #dc2626;
+  --color-risk-very-high: #ea580c;
+  --color-risk-high: #f59e0b;
+  --color-risk-medium: #3b82f6;
+  --color-risk-low: #22c55e;
+
+  /* Text */
+  --color-text-primary: #e2e8f0;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+
+  /* Node type colors */
+  --color-node-organization: #a855f7;
+  --color-node-domain: #00d4ff;
+  --color-node-subdomain: #38bdf8;
+  --color-node-ip: #14b8a6;
+  --color-node-certificate: #f59e0b;
+  --color-node-technology: #8b5cf6;
+  --color-node-repository: #22c55e;
+  --color-node-identity: #ec4899;
+  --color-node-exposure: #ef4444;
+  --color-node-threat: #dc2626;
+  --color-node-darkweb: #991b1b;
+
+  /* Fonts */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ============================================
+   Scrollbar
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-light);
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+.animate-slide-in {
+  animation: slide-in-right 0.3s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* ============================================
+   Card Styles
+   ============================================ */
+
+.card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--color-border-light);
+  background: var(--color-bg-card-hover);
+}
+
+.card-glass {
+  background: rgba(26, 31, 54, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(42, 49, 80, 0.5);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+/* ============================================
+   Risk Badge Styles
+   ============================================ */
+
+.risk-critical {
+  color: var(--color-risk-critical);
+  background: rgba(220, 38, 38, 0.15);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.risk-very-high {
+  color: var(--color-risk-very-high);
+  background: rgba(234, 88, 12, 0.15);
+  border: 1px solid rgba(234, 88, 12, 0.3);
+}
+
+.risk-high {
+  color: var(--color-risk-high);
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.risk-medium {
+  color: var(--color-risk-medium);
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.risk-low {
+  color: var(--color-risk-low);
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+/* ============================================
+   Stat Card Number Animation
+   ============================================ */
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+/* ============================================
+   Graph Container
+   ============================================ */
+
+.graph-container {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* ============================================
+   Table Styles
+   ============================================ */
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+}
+
+.data-table td {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.data-table tr:hover td {
+  background: var(--color-bg-card-hover);
+}
+
+/* ============================================
+   Evidence Panel
+   ============================================ */
+
+.evidence-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 480px;
+  height: 100vh;
+  background: var(--color-bg-card);
+  border-left: 1px solid var(--color-border);
+  z-index: 50;
+  overflow-y: auto;
+  animation: slide-in-right 0.3s ease-out;
+}
+
+/* ============================================
+   Timeline
+   ============================================ */
+
+.timeline-line {
+  position: absolute;
+  left: 1.25rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--color-cyber-blue), var(--color-cyber-purple));
+}
+
+.timeline-dot {
+  position: absolute;
+  left: 0.75rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  border: 2px solid var(--color-cyber-blue);
+  background: var(--color-bg-primary);
+  z-index: 1;
+}
+
+/* ============================================
+   Button Styles
+   ============================================ */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, var(--color-cyber-blue), #0091b3);
+  color: #0a0e1a;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  font-weight: 500;
+  font-size: 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  border-color: var(--color-cyber-blue);
+  color: var(--color-cyber-blue);
+}
+
+/* ============================================
+   Input Styles
+   ============================================ */
+
+.input-field {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.625rem 1rem;
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-family: var(--font-mono);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.input-field:focus {
+  border-color: var(--color-cyber-blue);
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.15);
+}
+
+.input-field::placeholder {
+  color: var(--color-text-muted);
+}
