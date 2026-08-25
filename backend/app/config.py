@@ -1,5 +1,14 @@
+import os
+import tempfile
 from pydantic_settings import BaseSettings
 from typing import Optional
+
+
+def get_default_db_url() -> str:
+    if os.environ.get("VERCEL") or not os.access(".", os.W_OK):
+        db_file = os.path.join(tempfile.gettempdir(), "osint_attack_path.db")
+        return f"sqlite+aiosqlite:///{db_file}"
+    return "sqlite+aiosqlite:///./osint_attack_path.db"
 
 
 class Settings(BaseSettings):
@@ -11,7 +20,7 @@ class Settings(BaseSettings):
     osint_mode: str = "demo"  # "demo" or "live"
 
     # Database
-    database_url: str = "sqlite+aiosqlite:///./osint_attack_path.db"
+    database_url: str = get_default_db_url()
 
     # Server
     backend_host: str = "0.0.0.0"
@@ -31,3 +40,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
