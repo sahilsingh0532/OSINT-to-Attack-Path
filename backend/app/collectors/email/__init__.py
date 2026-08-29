@@ -1,0 +1,1 @@
+# Email collectors package

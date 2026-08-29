@@ -12,6 +12,8 @@ import Timeline from './pages/Timeline';
 import Reports from './pages/Reports';
 import Research from './pages/Research';
 import Settings from './pages/Settings';
+import EmailIntelligence from './pages/EmailIntelligence';
+import UsernameIntel from './pages/UsernameIntel';
 
 export default function App() {
   return (
@@ -30,6 +32,9 @@ export default function App() {
           <Route path="/reports" element={<Reports />} />
           <Route path="/research" element={<Research />} />
           <Route path="/settings" element={<Settings />} />
+          {/* New intelligence pages */}
+          <Route path="/email-intelligence" element={<EmailIntelligence />} />
+          <Route path="/username-intel" element={<UsernameIntel />} />
         </Route>
       </Routes>
     </BrowserRouter>

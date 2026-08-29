@@ -11,5 +11,10 @@ services:
       - key: OSINT_MODE
         value: demo
       - key: FRONTEND_URL
+        # Update this to your GitHub Pages URL (sub-path included)
         value: https://sahilsingh0532.github.io
+      - key: DATABASE_URL
+        # Leave unset to use the default SQLite DB bundled with the app.
+        # Set to a postgresql+asyncpg:// URL to switch to PostgreSQL.
+        value: ""
     plan: free

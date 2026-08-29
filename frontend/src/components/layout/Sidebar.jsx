@@ -1,23 +1,40 @@
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Radar, Database, Globe, Route, BarChart3,
+  LayoutDashboard, Radar, Activity, Globe, Route, BarChart3,
   ShieldAlert, Shield, Clock, FileText, GraduationCap, Settings,
-  Crosshair
+  Crosshair, Mail, User
 } from 'lucide-react';
 
-const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/reconnaissance', icon: Radar, label: 'Reconnaissance' },
-  { to: '/sources', icon: Database, label: 'OSINT Sources' },
-  { to: '/attack-surface', icon: Globe, label: 'Attack Surface' },
-  { to: '/attack-paths', icon: Route, label: 'Attack Paths' },
-  { to: '/risk-analysis', icon: BarChart3, label: 'Risk Analysis' },
-  { to: '/threat-intelligence', icon: ShieldAlert, label: 'Threat Intel' },
-  { to: '/defense', icon: Shield, label: 'Defense' },
-  { to: '/timeline', icon: Clock, label: 'Timeline' },
-  { to: '/reports', icon: FileText, label: 'Reports' },
-  { to: '/research', icon: GraduationCap, label: 'Research' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+const navGroups = [
+  {
+    label: 'ANALYSIS',
+    items: [
+      { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+      { to: '/reconnaissance', icon: Radar, label: 'Reconnaissance' },
+      { to: '/attack-surface', icon: Globe, label: 'Attack Surface' },
+      { to: '/attack-paths', icon: Route, label: 'Attack Paths' },
+      { to: '/risk-analysis', icon: BarChart3, label: 'Risk Analysis' },
+    ],
+  },
+  {
+    label: 'INTELLIGENCE',
+    items: [
+      { to: '/threat-intelligence', icon: ShieldAlert, label: 'Threat Intel' },
+      { to: '/email-intelligence', icon: Mail, label: 'Email Intel' },
+      { to: '/username-intel', icon: User, label: 'Username Intel' },
+    ],
+  },
+  {
+    label: 'PLATFORM',
+    items: [
+      { to: '/sources', icon: Activity, label: 'Source Health' },
+      { to: '/defense', icon: Shield, label: 'Defense' },
+      { to: '/timeline', icon: Clock, label: 'Timeline' },
+      { to: '/reports', icon: FileText, label: 'Reports' },
+      { to: '/research', icon: GraduationCap, label: 'Research' },
+      { to: '/settings', icon: Settings, label: 'Settings' },
+    ],
+  },
 ];
 
 export default function Sidebar() {
@@ -66,29 +83,36 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav style={{ flex: 1, padding: '0.75rem 0.5rem', overflowY: 'auto' }}>
-        {navItems.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            style={({ isActive }) => ({
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              padding: '0.625rem 0.75rem',
-              marginBottom: '0.125rem',
-              borderRadius: '8px',
-              fontSize: '0.8125rem',
-              fontWeight: isActive ? 600 : 400,
-              color: isActive ? 'var(--color-cyber-blue)' : 'var(--color-text-secondary)',
-              background: isActive ? 'rgba(0, 212, 255, 0.1)' : 'transparent',
-              textDecoration: 'none',
-              transition: 'all 0.15s ease',
-            })}
-          >
-            <Icon size={18} />
-            {label}
-          </NavLink>
+        {navGroups.map(group => (
+          <div key={group.label} style={{ marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: '0.5625rem', fontWeight: 700, color: 'var(--color-text-muted)', letterSpacing: '0.12em', textTransform: 'uppercase', padding: '0.5rem 0.75rem 0.25rem' }}>
+              {group.label}
+            </div>
+            {group.items.map(({ to, icon: Icon, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/'}
+                style={({ isActive }) => ({
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.625rem 0.75rem',
+                  marginBottom: '0.125rem',
+                  borderRadius: '8px',
+                  fontSize: '0.8125rem',
+                  fontWeight: isActive ? 600 : 400,
+                  color: isActive ? 'var(--color-cyber-blue)' : 'var(--color-text-secondary)',
+                  background: isActive ? 'rgba(0, 212, 255, 0.1)' : 'transparent',
+                  textDecoration: 'none',
+                  transition: 'all 0.15s ease',
+                })}
+              >
+                <Icon size={16} />
+                {label}
+              </NavLink>
+            ))}
+          </div>
         ))}
       </nav>
 

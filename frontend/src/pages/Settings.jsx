@@ -14,10 +14,15 @@ export default function Settings() {
   }, []);
 
   const apiKeys = [
-    { key: 'github_configured', label: 'GitHub Token', desc: 'Required for public repository and code search' },
-    { key: 'shodan_configured', label: 'Shodan API Key', desc: 'Required for passive infrastructure data' },
-    { key: 'virustotal_configured', label: 'VirusTotal API Key', desc: 'Required for threat intelligence lookups' },
-    { key: 'censys_configured', label: 'Censys API Key', desc: 'Required for certificate and host search' },
+    { key: 'github_configured',        label: 'GitHub Token',           desc: 'Public repository and code search, email extraction from commits' },
+    { key: 'shodan_configured',         label: 'Shodan API Key',          desc: 'Passive infrastructure and open-port data for IP targets' },
+    { key: 'virustotal_configured',     label: 'VirusTotal API Key',      desc: 'Threat intelligence, domain reputation, and certificate lookups' },
+    { key: 'censys_configured',         label: 'Censys API Key',          desc: 'Certificate and host search for infrastructure mapping' },
+    { key: 'hunter_configured',         label: 'Hunter.io API Key',       desc: 'Email address discovery for target domain (25 req/month free)' },
+    { key: 'hibp_configured',           label: 'Have I Been Pwned Key',   desc: 'Breach database lookup for domain email addresses (paid API)' },
+    { key: 'emailrep_configured',       label: 'EmailRep API Key',        desc: 'Email reputation and risk scoring (100 req/day free)' },
+    { key: 'securitytrails_configured', label: 'SecurityTrails API Key',  desc: 'Passive DNS, subdomain enumeration, and historical records' },
+    { key: 'firebase_configured',       label: 'Firebase Project ID',     desc: 'Optional cloud sync layer for scan persistence across sessions' },
   ];
 
   return (

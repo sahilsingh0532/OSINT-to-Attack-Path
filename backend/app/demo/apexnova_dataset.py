@@ -4,6 +4,10 @@ Complete demo dataset for the fictional company ApexNova Technologies.
 repositories, developers, threat intelligence, and dark-web references.
 
 All data is entirely fictional. No real people, organizations, or infrastructure.
+
+Phase 2 upgrade: every finding now includes multi-source fields:
+  sources, source_count, source_agreement, evidence_per_source, first_seen, last_seen
+This demonstrates the core research novelty: multi-source OSINT correlation.
 """
 
 from datetime import datetime, timezone, timedelta
@@ -13,6 +17,116 @@ BASE_DATE = datetime(2026, 7, 1, tzinfo=timezone.utc)
 
 def _dt(days_offset: int) -> str:
     return (BASE_DATE + timedelta(days=days_offset)).isoformat()
+
+
+# ── Multi-source enrichment map ──────────────────────────────────────────────
+# Defines which demo findings are confirmed by multiple fictional OSINT sources.
+# Format: {finding_value: [source_names]}
+_MULTI_SOURCE_MAP = {
+    "apexnova.example":        ["rdap", "crt.sh", "virustotal", "hackertarget"],
+    "apexnova-cloud.example":  ["rdap", "crt.sh", "virustotal"],
+    "apexnova-internal.example": ["rdap", "crt.sh"],
+    "apexnovatech.example":    ["rdap", "virustotal"],
+    # Subdomains
+    "dev.apexnova.example":    ["crt.sh", "virustotal", "hackertarget", "dns_query"],
+    "api.apexnova.example":    ["crt.sh", "virustotal", "hackertarget"],
+    "admin.apexnova.example":  ["crt.sh", "virustotal"],
+    "staging.apexnova.example": ["crt.sh", "virustotal", "dns_query"],
+    "mail.apexnova.example":   ["dns_query", "virustotal"],
+    "vpn.apexnova.example":    ["crt.sh", "hackertarget"],
+    "portal.apexnova.example": ["crt.sh", "virustotal", "hackertarget"],
+    "jenkins.apexnova.example": ["crt.sh", "virustotal"],
+    "gitlab.apexnova.example": ["crt.sh", "hackertarget"],
+    "cloud.apexnova.example":  ["crt.sh", "virustotal", "hackertarget", "dns_query"],
+    "db.apexnova.example":     ["crt.sh", "virustotal"],
+    "backup.apexnova.example": ["crt.sh"],
+    # IPs
+    "203.0.113.10":  ["shodan", "virustotal", "rdap"],
+    "203.0.113.45":  ["shodan", "virustotal"],
+    "198.51.100.72": ["shodan", "virustotal", "rdap"],
+    "198.51.100.88": ["shodan"],
+    "192.0.2.155":   ["shodan", "virustotal"],
+    "192.0.2.200":   ["shodan"],
+    # Technologies
+    "Nginx 1.24.0":  ["shodan", "virustotal", "http_fingerprint"],
+    "React.js":      ["http_fingerprint", "virustotal"],
+    "Node.js":       ["shodan", "http_fingerprint"],
+    "PostgreSQL":    ["shodan", "virustotal"],
+    "Docker":        ["shodan", "http_fingerprint"],
+    "Kubernetes":    ["shodan"],
+    # Emails (demo)
+    "priya.sharma@apexnova.example":   ["hunter.io", "github"],
+    "john.doe@apexnova.example":       ["hunter.io"],
+    "dev-team@apexnova.example":       ["hunter.io", "github", "emailrep.io"],
+    "security@apexnova.example":       ["hunter.io", "emailrep.io"],
+}
+
+# Total demo providers queried per type (for agreement calculation)
+_TOTAL_QUERIED = {
+    "domain": 4,
+    "subdomain": 4,
+    "certificate": 2,
+    "ip": 3,
+    "asn": 2,
+    "technology": 3,
+    "repository": 1,
+    "identity": 2,
+    "email": 3,
+    "threat_indicator": 3,
+    "darkweb_reference": 1,
+    "exposure": 2,
+    "organization": 2,
+}
+
+
+def _enrich_with_sources(finding: dict) -> dict:
+    """Inject multi-source metadata into a demo finding."""
+    value = finding.get("value", "")
+    # Look up by exact value or by a key contained in the value
+    sources = None
+    for key, srcs in _MULTI_SOURCE_MAP.items():
+        if key == value or (len(key) > 6 and key in value):
+            sources = srcs
+            break
+    if sources is None:
+        sources = [finding.get("source", "crt.sh")]
+
+    ft = finding.get("finding_type", "unknown")
+    total_q = _TOTAL_QUERIED.get(ft, 2)
+    sc = len(sources)
+    agreement = round(sc / max(total_q, 1), 2)
+
+    # Build per-source evidence list
+    base_conf = finding.get("confidence", 0.85)
+    base_evidence = finding.get("evidence", "")
+    disc_at = finding.get("discovered_at", _dt(0))
+
+    evidence_per_source = []
+    for i, src in enumerate(sources):
+        ev_conf = max(0.70, base_conf - 0.03 * i)  # slight variation per source
+        evidence_per_source.append({
+            "source": src,
+            "evidence": f"{base_evidence} (confirmed by {src})",
+            "discovered_at": _dt(i),  # slight time offset
+            "confidence": round(ev_conf, 2),
+            "raw_data": {"source": src, "method": "passive"},
+        })
+
+    # Recalculate confidence with multi-source bonus
+    source_bonus = min((sc - 1) * 0.08, 0.30)
+    new_confidence = min(base_conf + source_bonus, 0.97)
+
+    return {
+        **finding,
+        "sources": sources,
+        "source_count": sc,
+        "source_agreement": agreement,
+        "total_queried": total_q,
+        "confidence": round(new_confidence, 3),
+        "evidence_per_source": evidence_per_source,
+        "first_seen": finding.get("first_seen", disc_at),
+        "last_seen": finding.get("last_seen", _dt(58)),
+    }
 
 
 DEMO_TARGET = "apexnova.example"
@@ -1808,3 +1922,86 @@ RISK_SCORES = [
         "rationale": "Publicly accessible legacy server (high exposure), multiple confirmed indicators (high confidence), outdated security is commonly exploitable (high exploitability), server compromise impact is high."
     },
 ]
+
+
+# ============================================================================
+# EMAIL INTELLIGENCE (demo)
+# ============================================================================
+EMAILS = [
+    {
+        "source": "hunter.io",
+        "finding_type": "email",
+        "value": "priya.sharma@apexnova.example",
+        "title": "Email: priya.sharma@apexnova.example",
+        "description": "Public email for Priya Sharma (Lead Developer) at ApexNova Technologies.",
+        "confidence": 0.87,
+        "observation_type": "observed",
+        "evidence": "Hunter.io domain search + GitHub commit history",
+        "category": "email",
+        "tags": "email,hunter,github",
+        "discovered_at": _dt(10),
+        "raw_data": {
+            "first_name": "Priya", "last_name": "Sharma",
+            "position": "Lead Developer", "organization": "ApexNova Technologies",
+            "sources": ["hunter.io", "github"],
+        },
+    },
+    {
+        "source": "hunter.io",
+        "finding_type": "email",
+        "value": "john.doe@apexnova.example",
+        "title": "Email: john.doe@apexnova.example",
+        "description": "Public email for John Doe (CTO) at ApexNova Technologies.",
+        "confidence": 0.82,
+        "observation_type": "observed",
+        "evidence": "Hunter.io domain email enumeration",
+        "category": "email",
+        "tags": "email,hunter",
+        "discovered_at": _dt(12),
+        "raw_data": {"first_name": "John", "last_name": "Doe", "position": "CTO"},
+    },
+    {
+        "source": "hunter.io",
+        "finding_type": "email",
+        "value": "dev-team@apexnova.example",
+        "title": "Email: dev-team@apexnova.example",
+        "description": "Development team group email. Confirmed by multiple sources.",
+        "confidence": 0.90,
+        "observation_type": "observed",
+        "evidence": "Hunter.io + GitHub + EmailRep.io",
+        "category": "email",
+        "tags": "email,hunter,github,emailrep",
+        "discovered_at": _dt(8),
+        "raw_data": {"type": "generic", "organization": "ApexNova Technologies"},
+    },
+    {
+        "source": "hunter.io",
+        "finding_type": "email",
+        "value": "security@apexnova.example",
+        "title": "Email: security@apexnova.example",
+        "description": "Security contact email for ApexNova Technologies.",
+        "confidence": 0.85,
+        "observation_type": "observed",
+        "evidence": "Hunter.io domain search + EmailRep.io reputation check",
+        "category": "email",
+        "tags": "email,security,hunter,emailrep",
+        "discovered_at": _dt(9),
+        "raw_data": {"type": "generic", "reputation": "good"},
+    },
+]
+
+
+# ============================================================================
+# COMBINED: ALL_FINDINGS (multi-source enriched)
+# ============================================================================
+def _build_all_findings():
+    """Build the complete enriched finding list for demo scans."""
+    raw = (
+        DOMAINS + SUBDOMAINS + CERTIFICATES + IP_ASN + TECHNOLOGIES
+        + REPOSITORIES + DEVELOPERS + THREAT_INTEL + AHMIA_REFS
+        + ORG_REFERENCES + EXPOSURE_POINTS + EMAILS
+    )
+    return [_enrich_with_sources(f) for f in raw]
+
+
+ALL_FINDINGS = _build_all_findings()
