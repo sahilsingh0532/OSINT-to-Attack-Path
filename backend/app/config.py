@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     firebase_storage_bucket: Optional[str] = None
     firebase_messaging_sender_id: Optional[str] = None
     firebase_app_id: Optional[str] = None
+    firebase_measurement_id: Optional[str] = None
     firebase_service_account_path: Optional[str] = None  # Path to service account JSON
 
     # ── Confidence scoring parameters (configurable) ──────────────────────
@@ -57,6 +58,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 settings = Settings()

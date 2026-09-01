@@ -322,9 +322,15 @@ async def run_scan(scan_id: str, db: AsyncSession):
         await db.commit()
 
     except Exception as e:
-        scan.status = ScanStatus.FAILED.value
-        scan.progress_message = f"Error: {str(e)}"
-        await db.commit()
+        await db.rollback()
+        try:
+            scan = await db.get(Scan, scan_id)
+            if scan:
+                scan.status = ScanStatus.FAILED.value
+                scan.progress_message = f"Error: {str(e)}"
+                await db.commit()
+        except Exception:
+            pass
         raise
 
 

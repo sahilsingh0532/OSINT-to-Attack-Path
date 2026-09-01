@@ -1,5 +1,5 @@
 """Tests for the multi-source merger."""
-import pytest
+import unittest
 from app.services.merger import normalize_value, merge_results, compute_source_agreement
 
 
@@ -15,7 +15,7 @@ def _make_result(source, finding_type, value, confidence=0.85):
     }
 
 
-class TestNormalizeValue:
+class TestNormalizeValue(unittest.TestCase):
     def test_subdomain_strips_trailing_dot(self):
         assert normalize_value("subdomain", "dev.example.com.") == "dev.example.com"
 
@@ -34,7 +34,7 @@ class TestNormalizeValue:
         assert result == "as12345"
 
 
-class TestMergeResults:
+class TestMergeResults(unittest.TestCase):
     def test_single_source_no_merge(self):
         results = [_make_result("crt.sh", "subdomain", "dev.example.com")]
         merged = merge_results(results)
@@ -87,7 +87,7 @@ class TestMergeResults:
         assert "virustotal" in sources_in_eps
 
 
-class TestComputeSourceAgreement:
+class TestComputeSourceAgreement(unittest.TestCase):
     def test_agreement_calculation(self):
         merged = [
             {"finding_type": "subdomain", "source_count": 3, "sources": ["a", "b", "c"],
@@ -96,3 +96,7 @@ class TestComputeSourceAgreement:
         result = compute_source_agreement(merged, {"subdomain": 4})
         assert result[0]["source_agreement"] == 0.75  # 3/4
         assert result[0]["total_queried"] == 4
+
+
+if __name__ == "__main__":
+    unittest.main()

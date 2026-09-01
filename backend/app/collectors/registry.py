@@ -22,6 +22,7 @@ from app.collectors.certificate.virustotal import VirusTotalCertCollector
 from app.collectors.ip.shodan import ShodanIpCollector
 from app.collectors.ip.virustotal import VirusTotalIpCollector
 from app.collectors.ip.rdap import RdapIpCollector
+from app.collectors.ip.internetdb import ShodanInternetDbCollector
 
 # DNS providers
 from app.collectors.dns.dns_query import DnsQueryCollector
@@ -77,6 +78,7 @@ PROVIDER_REGISTRY: Dict[str, List[Type[BaseCollector]]] = {
         ShodanIpCollector,
         VirusTotalIpCollector,
         RdapIpCollector,
+        ShodanInternetDbCollector,
     ],
     "technology": [
         HttpFingerprintCollector,

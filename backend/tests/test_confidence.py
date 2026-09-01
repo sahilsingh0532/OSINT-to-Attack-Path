@@ -1,12 +1,12 @@
 """Tests for the confidence scoring engine."""
-import pytest
+import unittest
 from app.services.confidence import (
     calculate_confidence, calculate_confidence_pct, get_confidence_label,
     get_agreement_label, confidence_breakdown,
 )
 
 
-class TestCalculateConfidence:
+class TestCalculateConfidence(unittest.TestCase):
     def test_single_source_low_confidence(self):
         score = calculate_confidence([0.60], 1)
         assert 0.50 <= score <= 0.70
@@ -44,7 +44,7 @@ class TestCalculateConfidence:
         assert abs(score - score_no_date) < 0.01
 
 
-class TestConfidencePct:
+class TestConfidencePct(unittest.TestCase):
     def test_returns_int(self):
         result = calculate_confidence_pct([0.85], 1)
         assert isinstance(result, int)
@@ -54,7 +54,7 @@ class TestConfidencePct:
         assert 0 <= result <= 97
 
 
-class TestConfidenceLabel:
+class TestConfidenceLabel(unittest.TestCase):
     def test_very_high(self):
         assert get_confidence_label(92) == "Very High"
 
@@ -71,7 +71,7 @@ class TestConfidenceLabel:
         assert get_confidence_label(25) == "Very Low"
 
 
-class TestConfidenceBreakdown:
+class TestConfidenceBreakdown(unittest.TestCase):
     def test_structure(self):
         result = confidence_breakdown([0.85, 0.90], 2, 4)
         assert "final_confidence_pct" in result
@@ -87,4 +87,8 @@ class TestConfidenceBreakdown:
 
     def test_note_present(self):
         result = confidence_breakdown([0.85], 1, 1)
-        assert "passive OSINT" in result["note"].lower()
+        assert "passive osint" in result["note"].lower()
+
+
+if __name__ == "__main__":
+    unittest.main()
