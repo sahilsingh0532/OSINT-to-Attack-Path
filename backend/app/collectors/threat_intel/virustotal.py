@@ -23,7 +23,7 @@ class VirusTotalThreatCollector(BaseCollector):
         try:
             self._record_query()
             headers = {"x-apikey": settings.virustotal_api_key}
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=12.0, follow_redirects=True) as client:
                 r = await client.get(
                     f"https://www.virustotal.com/api/v3/domains/{target}",
                     headers=headers,
@@ -88,6 +88,15 @@ class VirusTotalThreatCollector(BaseCollector):
                                         tags="virustotal,threat,url,malicious",
                                         raw_data={"url": url_val, "stats": url_stats},
                                     ))
+                    self._record_success(len(results))
+                elif r.status_code == 401 or r.status_code == 403:
+                    self._record_error("VirusTotal API Key Invalid or Unauthorized (401/403)", status_code=r.status_code)
+                elif r.status_code == 429:
+                    self._record_error("VirusTotal API Rate Limit Exceeded (429)", status_code=429)
+                elif r.status_code != 404:
+                    self._record_error(f"VirusTotal threat intel query returned HTTP {r.status_code}", status_code=r.status_code)
+        except httpx.TimeoutException:
+            self._record_error("VirusTotal threat query timed out (12s limit)")
         except Exception as e:
             self._record_error(str(e))
         return results

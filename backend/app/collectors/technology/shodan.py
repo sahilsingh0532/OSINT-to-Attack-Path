@@ -30,7 +30,7 @@ class ShodanTechCollector(BaseCollector):
             pass
         try:
             self._record_query()
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
                 for ip in resolved_ips[:2]:
                     r = await client.get(
                         f"https://api.shodan.io/shodan/host/{ip}?key={settings.shodan_api_key}"
@@ -64,6 +64,17 @@ class ShodanTechCollector(BaseCollector):
                                         "ip": ip,
                                     },
                                 ))
+                    elif r.status_code == 401 or r.status_code == 403:
+                        self._record_error("Shodan API Key Invalid or Unauthorized (401/403)", status_code=r.status_code)
+                        return results
+                    elif r.status_code == 429:
+                        self._record_error("Shodan API Rate Limit Exceeded (429)", status_code=429)
+                        return results
+                    elif r.status_code != 404:
+                        self._record_error(f"Shodan tech query returned HTTP {r.status_code}", status_code=r.status_code)
+                self._record_success(len(results))
+        except httpx.TimeoutException:
+            self._record_error("Shodan tech query timed out (10s limit)")
         except Exception as e:
             self._record_error(str(e))
         return results

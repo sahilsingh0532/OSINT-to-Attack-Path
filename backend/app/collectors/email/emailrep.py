@@ -13,21 +13,22 @@ class EmailRepCollector(BaseCollector):
     provider_category = "email"
     requires_key = False  # Key optional for higher quota
 
+    def _has_api_key(self) -> bool:
+        return bool(settings.emailrep_api_key)
+
     async def collect(self, target: str) -> List[Dict[str, Any]]:
         """
         For domain-level recon, query EmailRep for any discovered emails.
         For direct email queries, call with target = email address.
         """
         results = []
-        # Only run if target looks like an email
         if "@" not in target and "." in target:
-            # Domain mode — we can't enumerate emails without Hunter, skip
             return []
 
         try:
             self._record_query()
             headers = {"Key": settings.emailrep_api_key} if settings.emailrep_api_key else {}
-            async with httpx.AsyncClient(timeout=8.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
                 r = await client.get(
                     f"https://emailrep.io/{target}",
                     headers={**headers, "User-Agent": "OSINT-Academic-Research/1.0"},
@@ -65,9 +66,15 @@ class EmailRepCollector(BaseCollector):
                             "profiles": profiles,
                             "deliverable": deliverable,
                             "days_since_domain_creation": days_since_seen,
-                            # Never include passwords or private data
                         },
                     ))
+                    self._record_success(len(results))
+                elif r.status_code == 429:
+                    self._record_error("EmailRep.io rate limit exceeded (100 free req/day)", status_code=429)
+                elif r.status_code != 404:
+                    self._record_error(f"EmailRep.io returned HTTP {r.status_code}", status_code=r.status_code)
+        except httpx.TimeoutException:
+            self._record_error("EmailRep.io query timed out (10s limit)")
         except Exception as e:
             self._record_error(str(e))
         return results

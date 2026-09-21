@@ -20,7 +20,7 @@ class AhmiaThreatCollector(BaseCollector):
         results = []
         try:
             self._record_query()
-            async with httpx.AsyncClient(timeout=8.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
                 r = await client.get(
                     f"https://ahmia.fi/search/?q={target}",
                     headers={"User-Agent": "Mozilla/5.0 (OSINT Academic Research)"},
@@ -45,6 +45,11 @@ class AhmiaThreatCollector(BaseCollector):
                             tags="ahmia,darkweb,tor,reference",
                             raw_data={"match_count": count, "query": target},
                         ))
+                    self._record_success(len(results))
+                elif r.status_code != 404:
+                    self._record_error(f"Ahmia search returned HTTP {r.status_code}", status_code=r.status_code)
+        except httpx.TimeoutException:
+            self._record_error("Ahmia request timed out (10s limit)")
         except Exception as e:
             self._record_error(str(e))
         return results

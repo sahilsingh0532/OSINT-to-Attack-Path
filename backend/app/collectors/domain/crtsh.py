@@ -2,7 +2,7 @@
 
 import httpx
 from typing import List, Dict, Any
-from app.collectors.base import BaseCollector, make_result, now_iso
+from app.collectors.base import BaseCollector, make_result
 
 
 class CrtShDomainCollector(BaseCollector):
@@ -17,13 +17,16 @@ class CrtShDomainCollector(BaseCollector):
         found = set()
         try:
             self._record_query()
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=12.0, follow_redirects=True) as client:
                 r = await client.get(
                     f"https://crt.sh/?q=%.{target}&output=json",
-                    headers={"Accept": "application/json"},
+                    headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0 (OSINT Research)"},
                 )
                 if r.status_code == 200:
-                    entries = r.json()
+                    try:
+                        entries = r.json()
+                    except Exception:
+                        entries = []
                     for entry in entries[:200]:
                         for name in entry.get("name_value", "").split("\n"):
                             name = name.strip().lower()
@@ -54,6 +57,11 @@ class CrtShDomainCollector(BaseCollector):
                                     first_seen=entry.get("not_before"),
                                     last_seen=entry.get("not_after"),
                                 ))
+                    self._record_success(len(results))
+                else:
+                    self._record_error(f"crt.sh returned HTTP {r.status_code}", status_code=r.status_code)
+        except httpx.TimeoutException:
+            self._record_error("crt.sh request timed out (12s limit)")
         except Exception as e:
             self._record_error(str(e))
         return results

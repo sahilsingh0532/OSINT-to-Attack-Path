@@ -21,11 +21,11 @@ class GithubEmailCollector(BaseCollector):
         domain = target if "@" not in target else target.split("@")[1]
         try:
             self._record_query()
-            headers = {}
+            headers = {"User-Agent": "OSINT-to-Attack-Path"}
             if settings.github_token:
                 headers["Authorization"] = f"token {settings.github_token}"
 
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
                 # Search for commits mentioning the domain email
                 r = await client.get(
                     f"https://api.github.com/search/commits?q={domain}&per_page=10",
@@ -62,6 +62,13 @@ class GithubEmailCollector(BaseCollector):
                                     "repo": repo,
                                 },
                             ))
+                    self._record_success(len(results))
+                elif r.status_code == 403:
+                    self._record_error("GitHub rate limit reached (403)", status_code=403)
+                elif r.status_code != 404:
+                    self._record_error(f"GitHub email search returned HTTP {r.status_code}", status_code=r.status_code)
+        except httpx.TimeoutException:
+            self._record_error("GitHub email query timed out (10s limit)")
         except Exception as e:
             self._record_error(str(e))
         return results

@@ -17,9 +17,10 @@ class AlienVaultDnsCollector(BaseCollector):
         seen = set()
         try:
             self._record_query()
-            async with httpx.AsyncClient(timeout=8.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
                 r = await client.get(
-                    f"https://otx.alienvault.com/api/v1/indicators/domain/{target}/passive_dns"
+                    f"https://otx.alienvault.com/api/v1/indicators/domain/{target}/passive_dns",
+                    headers={"User-Agent": "Mozilla/5.0 (OSINT Research)"}
                 )
                 if r.status_code == 200:
                     data = r.json()
@@ -52,6 +53,13 @@ class AlienVaultDnsCollector(BaseCollector):
                                     raw_data={"hostname": hostname, "address": address, "type": record_type},
                                     first_seen=first, last_seen=last,
                                 ))
+                    self._record_success(len(results))
+                elif r.status_code == 429:
+                    self._record_error("AlienVault OTX rate limit reached (429)", status_code=429)
+                else:
+                    self._record_error(f"AlienVault OTX returned HTTP {r.status_code}", status_code=r.status_code)
+        except httpx.TimeoutException:
+            self._record_error("AlienVault OTX request timed out (10s limit)")
         except Exception as e:
             self._record_error(str(e))
         return results

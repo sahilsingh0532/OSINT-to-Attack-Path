@@ -5,7 +5,8 @@ Replaces the old ALL_COLLECTORS list with a categorized, modular registry.
 Each provider is grouped by category.
 """
 
-from typing import List, Type, Dict
+import asyncio
+from typing import List, Type, Dict, Optional
 from app.collectors.base import BaseCollector
 
 # Domain providers
@@ -92,7 +93,7 @@ PROVIDER_REGISTRY: Dict[str, List[Type[BaseCollector]]] = {
         GithubEmailCollector,
         HunterEmailCollector,
         HibpEmailCollector,
-        # EmailRepCollector — only for direct email queries, not domain scans
+        EmailRepCollector,
     ],
     "username": [
         GithubUsernameCollector,
@@ -147,3 +148,38 @@ def get_provider_health(is_demo: bool = False) -> List[dict]:
                 seen.add(key)
                 statuses.append(status)
     return statuses
+
+
+async def test_single_provider(name: str, category: Optional[str] = None, target: str = "example.com") -> dict:
+    """Run a test on a specific provider."""
+    for cat, providers in PROVIDER_REGISTRY.items():
+        if category and cat != category:
+            continue
+        for ProviderClass in providers:
+            p = ProviderClass()
+            if p.name.lower() == name.lower():
+                return await p.test_connection(target)
+    return {
+        "name": name,
+        "category": category or "general",
+        "status": "not_found",
+        "ok": False,
+        "message": f"Provider '{name}' not found in registry",
+        "latency_ms": 0,
+        "findings_count": 0,
+    }
+
+
+async def test_all_providers(target: str = "example.com") -> List[dict]:
+    """Test all registered providers concurrently."""
+    tasks = []
+    seen = set()
+    for cat, providers in PROVIDER_REGISTRY.items():
+        for ProviderClass in providers:
+            p = ProviderClass()
+            key = f"{p.name}:{cat}"
+            if key not in seen:
+                seen.add(key)
+                tasks.append(p.test_connection(target))
+    results = await asyncio.gather(*tasks, return_exceptions=False)
+    return list(results)

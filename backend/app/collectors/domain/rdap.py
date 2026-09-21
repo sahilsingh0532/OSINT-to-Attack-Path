@@ -16,8 +16,11 @@ class RdapDomainCollector(BaseCollector):
         results = []
         try:
             self._record_query()
-            async with httpx.AsyncClient(timeout=6.0) as client:
-                r = await client.get(f"https://rdap.org/domain/{target}")
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+                r = await client.get(
+                    f"https://rdap.org/domain/{target}",
+                    headers={"Accept": "application/rdap+json, application/json", "User-Agent": "Mozilla/5.0 (OSINT Research)"}
+                )
                 if r.status_code == 200:
                     data = r.json()
                     handle = data.get("handle", "")
@@ -26,10 +29,11 @@ class RdapDomainCollector(BaseCollector):
                     registrar = ""
                     for entity in data.get("entities", []):
                         if "registrar" in entity.get("roles", []):
-                            vcard = entity.get("vcardArray", [None, []])[1]
-                            for field in vcard:
-                                if field[0] == "fn":
-                                    registrar = field[3]
+                            vcard = entity.get("vcardArray", [None, []])
+                            if len(vcard) > 1 and isinstance(vcard[1], list):
+                                for field in vcard[1]:
+                                    if len(field) > 3 and field[0] == "fn":
+                                        registrar = field[3]
 
                     results.append(make_result(
                         source=self.name,
@@ -39,7 +43,7 @@ class RdapDomainCollector(BaseCollector):
                         confidence=0.95,
                         evidence=f"RDAP registration record for {target} via rdap.org",
                         title=f"Domain Registration: {target}",
-                        description=f"Domain registered. Handle: {handle}. Status: {', '.join(status)}. Registrar: {registrar}",
+                        description=f"Domain registered. Handle: {handle}. Status: {', '.join(status)}. Registrar: {registrar or 'Unknown'}",
                         observation_type="observed",
                         category="infrastructure",
                         tags="domain,rdap,whois,registration",
@@ -73,6 +77,13 @@ class RdapDomainCollector(BaseCollector):
                                 tags="nameserver,rdap,dns",
                                 raw_data={"nameserver": ns_name},
                             ))
+                    self._record_success(len(results))
+                elif r.status_code == 404:
+                    self._record_error(f"Domain '{target}' not found in RDAP registry (404)", status_code=404)
+                else:
+                    self._record_error(f"RDAP server returned HTTP {r.status_code}", status_code=r.status_code)
+        except httpx.TimeoutException:
+            self._record_error("RDAP query timed out (10s limit)")
         except Exception as e:
             self._record_error(str(e))
         return results

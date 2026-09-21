@@ -25,9 +25,12 @@ class RdapIpCollector(BaseCollector):
 
         try:
             self._record_query()
-            async with httpx.AsyncClient(timeout=6.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
                 for ip in resolved_ips[:2]:
-                    r = await client.get(f"https://rdap.org/ip/{ip}")
+                    r = await client.get(
+                        f"https://rdap.org/ip/{ip}",
+                        headers={"Accept": "application/rdap+json, application/json", "User-Agent": "Mozilla/5.0 (OSINT Research)"}
+                    )
                     if r.status_code == 200:
                         data = r.json()
                         name = data.get("name", "")
@@ -57,6 +60,11 @@ class RdapIpCollector(BaseCollector):
                                 "end": end_addr,
                             },
                         ))
+                    else:
+                        self._record_error(f"RDAP IP lookup returned HTTP {r.status_code}", status_code=r.status_code)
+                self._record_success(len(results))
+        except httpx.TimeoutException:
+            self._record_error("RDAP IP lookup timed out (10s limit)")
         except Exception as e:
             self._record_error(str(e))
         return results

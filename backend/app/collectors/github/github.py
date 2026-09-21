@@ -1,15 +1,9 @@
 """GitHub intelligence provider — repos, code search, developer discovery, potential secret exposure."""
 
 import httpx
-import re
 from typing import List, Dict, Any
 from app.collectors.base import BaseCollector, make_result
 from app.config import settings
-
-# Patterns that may indicate credential exposure — we detect but NEVER display the value
-SECRET_PATTERNS = [
-    r'(?i)(api[_-]?key|apikey|secret|password|passwd|token|auth|private[_-]?key)\s*[=:]\s*["\']?[\w\-/+]{8,}',
-]
 
 
 class GithubIntelCollector(BaseCollector):
@@ -26,11 +20,11 @@ class GithubIntelCollector(BaseCollector):
         results = []
         try:
             self._record_query()
-            headers = {"Accept": "application/vnd.github.v3+json"}
+            headers = {"Accept": "application/vnd.github.v3+json", "User-Agent": "OSINT-to-Attack-Path"}
             if settings.github_token:
                 headers["Authorization"] = f"token {settings.github_token}"
 
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
                 # 1. Repository search
                 r = await client.get(
                     f"https://api.github.com/search/repositories?q={target}&per_page=10",
@@ -67,41 +61,47 @@ class GithubIntelCollector(BaseCollector):
                             first_seen=repo.get("created_at"),
                             last_seen=repo.get("pushed_at"),
                         ))
+                elif r.status_code == 403:
+                    self._record_error("GitHub API rate limit exceeded or token invalid (403)", status_code=403)
+                elif r.status_code == 401:
+                    self._record_error("GitHub Token Unauthorized (401)", status_code=401)
+                elif r.status_code != 404:
+                    self._record_error(f"GitHub search returned HTTP {r.status_code}", status_code=r.status_code)
 
-                # 2. Code search for potential secrets (detect only, NEVER expose value)
-                r2 = await client.get(
-                    f"https://api.github.com/search/code?q={target}+extension:env+OR+extension:yml+OR+extension:json&per_page=5",
-                    headers=headers,
-                )
-                if r2.status_code == 200:
-                    for item in r2.json().get("items", [])[:5]:
-                        path = item.get("path", "")
-                        repo_name = item.get("repository", {}).get("full_name", "repo")
-                        html_url = item.get("html_url", "")
-                        results.append(make_result(
-                            source=self.name,
-                            finding_type="exposure",
-                            value=f"github_code:{repo_name}:{path}",
-                            target=target,
-                            confidence=0.78,
-                            evidence=f"GitHub code search found {target} referenced in {repo_name}/{path}",
-                            title=f"Code Reference: {path}",
-                            description=(
-                                f"File {path} in public repository {repo_name} references target. "
-                                "Review for unintentional credential or configuration exposure. "
-                                "Recommendation: rotate any exposed credentials and review repository history."
-                            ),
-                            observation_type="inferred",
-                            category="exposure",
-                            tags="github,code,exposure,potential_secret",
-                            external_url=html_url,
-                            raw_data={
-                                "repo": repo_name,
-                                "path": path,
-                                # Never include actual file content or credentials
-                                "note": "Potential secret exposure detected. Value not displayed for security.",
-                            },
-                        ))
+                # 2. Code search (only run if authenticated with token since unauth code search is rejected by GitHub)
+                if settings.github_token:
+                    r2 = await client.get(
+                        f"https://api.github.com/search/code?q={target}+extension:env+OR+extension:yml+OR+extension:json&per_page=5",
+                        headers=headers,
+                    )
+                    if r2.status_code == 200:
+                        for item in r2.json().get("items", [])[:5]:
+                            path = item.get("path", "")
+                            repo_name = item.get("repository", {}).get("full_name", "repo")
+                            html_url = item.get("html_url", "")
+                            results.append(make_result(
+                                source=self.name,
+                                finding_type="exposure",
+                                value=f"github_code:{repo_name}:{path}",
+                                target=target,
+                                confidence=0.78,
+                                evidence=f"GitHub code search found {target} referenced in {repo_name}/{path}",
+                                title=f"Code Reference: {path}",
+                                description=(
+                                    f"File {path} in public repository {repo_name} references target. "
+                                    "Review for unintentional credential or configuration exposure. "
+                                    "Recommendation: rotate any exposed credentials and review repository history."
+                                ),
+                                observation_type="inferred",
+                                category="exposure",
+                                tags="github,code,exposure,potential_secret",
+                                external_url=html_url,
+                                raw_data={
+                                    "repo": repo_name,
+                                    "path": path,
+                                    "note": "Potential secret exposure detected. Value not displayed for security.",
+                                },
+                            ))
 
                 # 3. Organization search
                 r3 = await client.get(
@@ -127,6 +127,9 @@ class GithubIntelCollector(BaseCollector):
                             raw_data={"login": login, "type": "Organization"},
                         ))
 
+                self._record_success(len(results))
+        except httpx.TimeoutException:
+            self._record_error("GitHub API query timed out (10s limit)")
         except Exception as e:
             self._record_error(str(e))
         return results

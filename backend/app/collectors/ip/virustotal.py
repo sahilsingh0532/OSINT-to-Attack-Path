@@ -32,7 +32,7 @@ class VirusTotalIpCollector(BaseCollector):
         try:
             self._record_query()
             headers = {"x-apikey": settings.virustotal_api_key}
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
                 for ip in resolved_ips[:2]:
                     r = await client.get(
                         f"https://www.virustotal.com/api/v3/ip_addresses/{ip}",
@@ -82,6 +82,17 @@ class VirusTotalIpCollector(BaseCollector):
                                 tags="asn,virustotal",
                                 raw_data={"asn": asn, "owner": asn_owner, "ip": ip},
                             ))
+                    elif r.status_code == 401 or r.status_code == 403:
+                        self._record_error("VirusTotal API Key Invalid or Unauthorized (401/403)", status_code=r.status_code)
+                        return results
+                    elif r.status_code == 429:
+                        self._record_error("VirusTotal API Rate Limit Exceeded (429)", status_code=429)
+                        return results
+                    elif r.status_code != 404:
+                        self._record_error(f"VirusTotal IP query returned HTTP {r.status_code}", status_code=r.status_code)
+                self._record_success(len(results))
+        except httpx.TimeoutException:
+            self._record_error("VirusTotal IP query timed out (10s limit)")
         except Exception as e:
             self._record_error(str(e))
         return results

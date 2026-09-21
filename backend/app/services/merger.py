@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 import re
 
 from app.services.confidence import calculate_confidence
+from app.utils import to_utc_datetime
 
 
 def normalize_value(finding_type: str, value: str) -> str:
@@ -98,16 +99,15 @@ def merge_results(raw_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         evidences = [r.get("evidence", "") for r in group if r.get("evidence")]
         merged_evidence = " | ".join(dict.fromkeys(evidences))  # deduplicated
 
-        # First/last seen across all sources
+        # First/last seen across all sources (safely converted to UTC aware datetimes)
         dates = []
         for r in group:
             for df in ["first_seen", "discovered_at", "last_seen"]:
                 d = r.get(df)
                 if d:
-                    try:
-                        dates.append(datetime.fromisoformat(d.replace("Z", "+00:00")))
-                    except Exception:
-                        pass
+                    dt = to_utc_datetime(d)
+                    if dt:
+                        dates.append(dt)
         first_seen = min(dates).isoformat() if dates else None
         last_seen = max(dates).isoformat() if dates else None
 

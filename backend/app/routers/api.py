@@ -27,8 +27,12 @@ from app.schemas import (
 from app.services.scan_orchestrator import run_scan
 from app.services.reporter import generate_report
 from app.services.confidence import confidence_breakdown
-from app.collectors.registry import get_all_providers, get_provider_health, PROVIDER_REGISTRY
+from app.collectors.registry import (
+    get_all_providers, get_provider_health, PROVIDER_REGISTRY,
+    test_all_providers, test_single_provider
+)
 from app.config import settings
+from app.utils import clean_domain_target, is_valid_domain
 
 
 router = APIRouter(prefix="/api")
@@ -45,8 +49,15 @@ async def _run_scan_background(scan_id: str):
 @router.post("/scans", response_model=ScanSummary)
 async def create_scan(scan_data: ScanCreate, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     """Start a new passive reconnaissance scan."""
+    cleaned_target = clean_domain_target(scan_data.target_domain)
+    if not cleaned_target or not is_valid_domain(cleaned_target):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid domain target '{scan_data.target_domain}'. Please enter a valid domain name (e.g. example.com or sub.domain.org)."
+        )
+
     scan = Scan(
-        target_domain=scan_data.target_domain,
+        target_domain=cleaned_target,
         mode=scan_data.mode,
         status=ScanStatus.PENDING.value,
     )
@@ -464,6 +475,10 @@ async def get_sources():
             category=h["category"],
             last_error=h.get("last_error"),
             last_queried_at=h.get("last_queried_at"),
+            last_latency_ms=h.get("last_latency_ms"),
+            last_findings_count=h.get("last_findings_count", 0),
+            total_queries=h.get("total_queries", 0),
+            total_errors=h.get("total_errors", 0),
         )
         for h in health
     ]
@@ -474,6 +489,21 @@ async def get_source_health():
     """Detailed source health for the Source Health Dashboard."""
     is_demo = (settings.osint_mode == "demo")
     return get_provider_health(is_demo=is_demo)
+
+
+@router.post("/sources/test")
+async def test_all_sources(target: Optional[str] = "example.com"):
+    """Live diagnostic test across all registered OSINT providers."""
+    clean = clean_domain_target(target) if target else "example.com"
+    return await test_all_providers(target=clean)
+
+
+@router.post("/sources/{provider_name}/test")
+async def test_source(provider_name: str, category: Optional[str] = None, target: Optional[str] = "example.com"):
+    """Test a specific OSINT provider connection/API key."""
+    clean = clean_domain_target(target) if target else "example.com"
+    res = await test_single_provider(name=provider_name, category=category, target=clean)
+    return res
 
 
 # ═══════════════════════════════ SETTINGS ════════════════════════════════════

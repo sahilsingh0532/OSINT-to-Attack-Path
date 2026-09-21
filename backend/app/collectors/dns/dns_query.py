@@ -18,7 +18,7 @@ class DnsQueryCollector(BaseCollector):
             self._record_query()
             resolver = dns.asyncresolver.Resolver()
             resolver.timeout = 3.0
-            resolver.lifetime = 5.0
+            resolver.lifetime = 6.0
 
             # A Records
             try:
@@ -97,6 +97,7 @@ class DnsQueryCollector(BaseCollector):
             except Exception:
                 pass
 
+            self._record_success(len(results))
         except Exception as e:
             self._record_error(str(e))
         return results

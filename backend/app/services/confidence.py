@@ -25,6 +25,7 @@ Human-readable thresholds:
 
 from datetime import datetime, timezone
 from typing import List, Optional
+from app.utils import to_utc_datetime
 
 
 # ── Configurable scoring parameters ─────────────────────────────────────────
@@ -69,13 +70,11 @@ def calculate_confidence(
     # Freshness bonus
     freshness_bonus = 0.0
     if first_seen:
-        try:
-            seen_dt = datetime.fromisoformat(first_seen.replace("Z", "+00:00"))
+        seen_dt = to_utc_datetime(first_seen)
+        if seen_dt:
             age_days = (datetime.now(timezone.utc) - seen_dt).days
             if age_days <= FRESHNESS_THRESHOLD_DAYS:
                 freshness_bonus = FRESHNESS_BONUS
-        except Exception:
-            pass
 
     final = base + agreement_bonus + freshness_bonus
     return round(max(MIN_CONFIDENCE, min(MAX_CONFIDENCE, final)), 4)
@@ -125,13 +124,11 @@ def confidence_breakdown(
     )
     freshness_bonus_pct = 0
     if first_seen:
-        try:
-            seen_dt = datetime.fromisoformat(first_seen.replace("Z", "+00:00"))
+        seen_dt = to_utc_datetime(first_seen)
+        if seen_dt:
             age_days = (datetime.now(timezone.utc) - seen_dt).days
             if age_days <= FRESHNESS_THRESHOLD_DAYS:
                 freshness_bonus_pct = round(FRESHNESS_BONUS * 100)
-        except Exception:
-            pass
 
     final_pct = calculate_confidence_pct(source_confidences, source_count, first_seen)
 

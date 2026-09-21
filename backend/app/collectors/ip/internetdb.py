@@ -42,8 +42,11 @@ class ShodanInternetDbCollector(BaseCollector):
         for ip in ips:
             try:
                 self._record_query()
-                async with httpx.AsyncClient(timeout=8.0) as client:
-                    r = await client.get(f"https://internetdb.shodan.io/{ip}")
+                async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+                    r = await client.get(
+                        f"https://internetdb.shodan.io/{ip}",
+                        headers={"User-Agent": "Mozilla/5.0 (OSINT Research)"}
+                    )
 
                 if r.status_code == 200:
                     data = r.json()
@@ -120,10 +123,18 @@ class ShodanInternetDbCollector(BaseCollector):
                             ),
                             observation_type="observed",
                             category="threat_intel",
-                            tags=f"cve,vulnerability,shodan_free",
+                            tags="cve,vulnerability,shodan_free",
                             raw_data={"ip": ip, "cve": cve},
                         ))
+                    self._record_success(len(results))
+                elif r.status_code == 404:
+                    # IP not in internetdb
+                    pass
+                else:
+                    self._record_error(f"Shodan InternetDB returned HTTP {r.status_code}", status_code=r.status_code)
 
+            except httpx.TimeoutException:
+                self._record_error("Shodan InternetDB request timed out (10s limit)")
             except Exception as e:
                 self._record_error(str(e))
 

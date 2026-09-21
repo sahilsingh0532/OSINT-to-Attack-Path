@@ -23,7 +23,7 @@ class VirusTotalCertCollector(BaseCollector):
         try:
             self._record_query()
             headers = {"x-apikey": settings.virustotal_api_key}
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
                 r = await client.get(
                     f"https://www.virustotal.com/api/v3/domains/{target}/historical_ssl_certificates?limit=10",
                     headers=headers,
@@ -66,6 +66,15 @@ class VirusTotalCertCollector(BaseCollector):
                             first_seen=validity.get("not_before"),
                             last_seen=validity.get("not_after"),
                         ))
+                    self._record_success(len(results))
+                elif r.status_code == 401 or r.status_code == 403:
+                    self._record_error("VirusTotal API Key Invalid or Unauthorized (401/403)", status_code=r.status_code)
+                elif r.status_code == 429:
+                    self._record_error("VirusTotal API Rate Limit Exceeded (429)", status_code=429)
+                elif r.status_code != 404:
+                    self._record_error(f"VirusTotal certificates returned HTTP {r.status_code}", status_code=r.status_code)
+        except httpx.TimeoutException:
+            self._record_error("VirusTotal certificates query timed out (10s limit)")
         except Exception as e:
             self._record_error(str(e))
         return results

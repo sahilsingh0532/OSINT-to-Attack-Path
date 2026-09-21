@@ -64,6 +64,10 @@ export const generateReport = (scanId) =>
 // ── Sources ────────────────────────────────────────────────────────────────
 export const getSources = () => api.get('/sources').then(r => r.data);
 export const getSourceHealth = () => api.get('/sources/health').then(r => r.data);
+export const testAllSources = (target = 'example.com') =>
+  api.post('/sources/test', null, { params: { target } }).then(r => r.data);
+export const testSource = (providerName, category, target = 'example.com') =>
+  api.post(`/sources/${providerName}/test`, null, { params: { category, target } }).then(r => r.data);
 
 // ── Settings ───────────────────────────────────────────────────────────────
 export const getSettings = () => api.get('/settings').then(r => r.data);

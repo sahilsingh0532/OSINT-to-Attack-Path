@@ -17,12 +17,21 @@ class HackerTargetDomainCollector(BaseCollector):
         found = set()
         try:
             self._record_query()
-            async with httpx.AsyncClient(timeout=8.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
                 r = await client.get(
-                    f"https://api.hackertarget.com/hostsearch/?q={target}"
+                    f"https://api.hackertarget.com/hostsearch/?q={target}",
+                    headers={"User-Agent": "Mozilla/5.0 (OSINT Research)"}
                 )
-                if r.status_code == 200 and "error" not in r.text.lower()[:50]:
-                    for line in r.text.strip().split("\n"):
+                if r.status_code == 200:
+                    text = r.text.strip()
+                    if "api count exceeded" in text.lower():
+                        self._record_error("HackerTarget rate limit exceeded (50 free req/day)", status_code=429)
+                        return []
+                    elif "error" in text.lower()[:50] and "no records" not in text.lower():
+                        self._record_error(f"HackerTarget API response: {text[:100]}")
+                        return []
+
+                    for line in text.split("\n"):
                         parts = line.split(",")
                         if len(parts) >= 1:
                             hostname = parts[0].strip().lower()
@@ -44,6 +53,11 @@ class HackerTargetDomainCollector(BaseCollector):
                                     tags="subdomain,hackertarget,passive_dns",
                                     raw_data={"hostname": hostname, "ip": ip},
                                 ))
+                    self._record_success(len(results))
+                else:
+                    self._record_error(f"HackerTarget returned HTTP {r.status_code}", status_code=r.status_code)
+        except httpx.TimeoutException:
+            self._record_error("HackerTarget request timed out (10s limit)")
         except Exception as e:
             self._record_error(str(e))
         return results

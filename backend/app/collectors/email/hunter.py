@@ -22,7 +22,7 @@ class HunterEmailCollector(BaseCollector):
         results = []
         try:
             self._record_query()
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
                 r = await client.get(
                     f"https://api.hunter.io/v2/domain-search?domain={target}&api_key={settings.hunter_api_key}&limit=20"
                 )
@@ -64,6 +64,15 @@ class HunterEmailCollector(BaseCollector):
                                 "pattern": pattern,
                             },
                         ))
+                    self._record_success(len(results))
+                elif r.status_code == 401 or r.status_code == 403:
+                    self._record_error("Hunter.io API Key Invalid or Unauthorized (401/403)", status_code=r.status_code)
+                elif r.status_code == 429:
+                    self._record_error("Hunter.io API Monthly Quota / Rate Limit Exceeded (429)", status_code=429)
+                elif r.status_code != 404:
+                    self._record_error(f"Hunter.io returned HTTP {r.status_code}", status_code=r.status_code)
+        except httpx.TimeoutException:
+            self._record_error("Hunter.io query timed out (10s limit)")
         except Exception as e:
             self._record_error(str(e))
         return results

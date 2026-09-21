@@ -21,7 +21,7 @@ class HibpEmailCollector(BaseCollector):
         target: domain name (e.g. 'example.com').
         Queries HIBP for all email breaches associated with the domain.
         """
-        if not settings.hibp_api_key:
+        if not self._has_api_key():
             return []
 
         results = []
@@ -32,7 +32,7 @@ class HibpEmailCollector(BaseCollector):
 
         try:
             self._record_query()
-            async with httpx.AsyncClient(timeout=12.0) as client:
+            async with httpx.AsyncClient(timeout=12.0, follow_redirects=True) as client:
                 # Query HIBP for all breached accounts on the domain
                 r = await client.get(
                     f"https://haveibeenpwned.com/api/v3/breacheddomain/{target}",
@@ -67,9 +67,13 @@ class HibpEmailCollector(BaseCollector):
                                 "breaches": breaches,
                             },
                         ))
-
+                    self._record_success(len(results))
+                elif r.status_code == 401 or r.status_code == 403:
+                    self._record_error("HIBP API Key Invalid or Subscription Inactive (401/403)", status_code=r.status_code)
+                elif r.status_code == 429:
+                    self._record_error("HIBP API Rate Limit Exceeded (429)", status_code=429)
                 elif r.status_code == 404:
-                    # Domain not in any breach — still report as a clean finding
+                    # Domain not in any breach — clean finding
                     results.append(make_result(
                         source=self.name,
                         finding_type="email",
@@ -84,7 +88,12 @@ class HibpEmailCollector(BaseCollector):
                         tags="email,hibp,no_breach",
                         raw_data={"domain": target, "breached": False},
                     ))
+                    self._record_success(len(results))
+                else:
+                    self._record_error(f"HIBP returned HTTP {r.status_code}", status_code=r.status_code)
 
+        except httpx.TimeoutException:
+            self._record_error("HIBP query timed out (12s limit)")
         except Exception as e:
             self._record_error(str(e))
 

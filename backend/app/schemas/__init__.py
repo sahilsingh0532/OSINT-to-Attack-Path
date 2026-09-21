@@ -258,13 +258,17 @@ class DashboardStats(BaseModel):
 class SourceStatus(BaseModel):
     name: str
     display_name: str
-    status: str           # "ready" | "key_missing" | "demo" | "error"
+    status: str           # "ready" | "key_missing" | "demo" | "error" | "rate_limited" | "auth_failed"
     is_demo: bool
     description: str
     requires_key: Optional[bool] = False
     category: Optional[str] = None
     last_error: Optional[str] = None
     last_queried_at: Optional[str] = None
+    last_latency_ms: Optional[float] = None
+    last_findings_count: Optional[int] = 0
+    total_queries: Optional[int] = 0
+    total_errors: Optional[int] = 0
 
 
 # ── Source Comparison ─────────────────────────────────────────────────────────

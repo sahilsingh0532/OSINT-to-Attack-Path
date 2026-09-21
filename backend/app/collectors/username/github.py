@@ -22,15 +22,14 @@ class GithubUsernameCollector(BaseCollector):
         Searches GitHub orgs and users referencing the target.
         """
         results = []
-        # Strip domain to get org candidate
         org_name = target.replace(".", "-").split("-")[0] if "." in target else target
         try:
             self._record_query()
-            headers = {}
+            headers = {"User-Agent": "OSINT-to-Attack-Path"}
             if settings.github_token:
                 headers["Authorization"] = f"token {settings.github_token}"
 
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
                 # Search organizations
                 r = await client.get(
                     f"https://api.github.com/search/users?q={org_name}+type:org&per_page=5",
@@ -72,6 +71,10 @@ class GithubUsernameCollector(BaseCollector):
                                 },
                                 first_seen=detail.get("created_at"),
                             ))
+                elif r.status_code == 403:
+                    self._record_error("GitHub rate limit reached (403)", status_code=403)
+                elif r.status_code != 404:
+                    self._record_error(f"GitHub username search returned HTTP {r.status_code}", status_code=r.status_code)
 
                 # Search users
                 r3 = await client.get(
@@ -97,6 +100,10 @@ class GithubUsernameCollector(BaseCollector):
                             external_url=html_url,
                             raw_data={"login": login, "type": "User"},
                         ))
+
+                self._record_success(len(results))
+        except httpx.TimeoutException:
+            self._record_error("GitHub user query timed out (10s limit)")
         except Exception as e:
             self._record_error(str(e))
         return results

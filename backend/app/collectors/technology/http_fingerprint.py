@@ -19,8 +19,8 @@ class HttpFingerprintCollector(BaseCollector):
             for scheme in ["https", "http"]:
                 url = f"{scheme}://{target}"
                 try:
-                    async with httpx.AsyncClient(timeout=6.0, follow_redirects=True, verify=False) as client:
-                        r = await client.get(url)
+                    async with httpx.AsyncClient(timeout=8.0, follow_redirects=True, verify=False) as client:
+                        r = await client.get(url, headers={"User-Agent": "Mozilla/5.0 (OSINT Technology Audit)"})
                         headers = {k.lower(): v for k, v in r.headers.items()}
 
                         server = headers.get("server", "")
@@ -85,6 +85,8 @@ class HttpFingerprintCollector(BaseCollector):
                         break
                 except Exception:
                     continue
+
+            self._record_success(len(results))
         except Exception as e:
             self._record_error(str(e))
         return results

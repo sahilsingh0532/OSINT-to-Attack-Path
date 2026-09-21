@@ -17,7 +17,7 @@ class SecurityTrailsDnsCollector(BaseCollector):
         return bool(settings.securitytrails_api_key)
 
     async def collect(self, target: str) -> List[Dict[str, Any]]:
-        if not settings.securitytrails_api_key:
+        if not self._has_api_key():
             return []
 
         results = []
@@ -25,7 +25,7 @@ class SecurityTrailsDnsCollector(BaseCollector):
 
         try:
             self._record_query()
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
                 # 1. Subdomain enumeration
                 r = await client.get(
                     f"https://api.securitytrails.com/v1/domain/{target}/subdomains",
@@ -50,6 +50,14 @@ class SecurityTrailsDnsCollector(BaseCollector):
                             tags="subdomain,securitytrails,passive_dns",
                             raw_data={"subdomain": sub, "fqdn": fqdn},
                         ))
+                elif r.status_code == 401 or r.status_code == 403:
+                    self._record_error("SecurityTrails API Key Invalid or Unauthorized (401/403)", status_code=r.status_code)
+                    return []
+                elif r.status_code == 429:
+                    self._record_error("SecurityTrails API Rate Limit Exceeded (429)", status_code=429)
+                    return []
+                elif r.status_code != 404:
+                    self._record_error(f"SecurityTrails subdomains returned HTTP {r.status_code}", status_code=r.status_code)
 
                 # 2. Historical DNS records
                 r2 = await client.get(
@@ -87,6 +95,10 @@ class SecurityTrailsDnsCollector(BaseCollector):
                                     last_seen=last_seen,
                                 ))
 
+                self._record_success(len(results))
+
+        except httpx.TimeoutException:
+            self._record_error("SecurityTrails request timed out (10s limit)")
         except Exception as e:
             self._record_error(str(e))
 

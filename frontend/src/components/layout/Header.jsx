@@ -7,9 +7,28 @@ export default function Header() {
   const [mode, setMode] = useState('demo');
   const { currentScan, startScan, isLoading, generateReport } = useScanStore();
 
+  const cleanTarget = (str) => {
+    if (!str) return '';
+    let t = str.trim();
+    if (t.includes('://')) {
+      try {
+        t = new URL(t).hostname;
+      } catch {
+        t = t.split('://')[1] || t;
+      }
+    }
+    t = t.split('/')[0].split('?')[0].split('#')[0];
+    if (t.includes(':') && !t.startsWith('[')) {
+      t = t.split(':')[0];
+    }
+    return t.replace(/\.+$/, '').toLowerCase();
+  };
+
   const handleScan = () => {
-    if (target.trim()) {
-      startScan(target.trim(), mode);
+    const cleaned = cleanTarget(target);
+    if (cleaned) {
+      setTarget(cleaned);
+      startScan(cleaned, mode);
     }
   };
 

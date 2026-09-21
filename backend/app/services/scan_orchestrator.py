@@ -32,11 +32,15 @@ from app.demo.apexnova_dataset import (
 )
 
 
+from app.utils import clean_domain_target
+
+
 async def _run_provider(provider, target: str) -> list:
     """Run a single provider and return results, catching all errors."""
     try:
         return await provider.collect(target)
     except Exception as e:
+        provider._record_error(str(e))
         print(f"[Provider Error] {provider.name}: {e}")
         return []
 
@@ -49,6 +53,11 @@ async def run_scan(scan_id: str, db: AsyncSession):
 
     try:
         is_demo = (scan.mode == "demo")
+        # Sanitize target domain
+        target = clean_domain_target(scan.target_domain)
+        if target and target != scan.target_domain:
+            scan.target_domain = target
+            await db.commit()
 
         # ── Phase 1: Concurrent Provider Collection ────────────────────────
         scan.status = ScanStatus.COLLECTING.value
@@ -64,14 +73,14 @@ async def run_scan(scan_id: str, db: AsyncSession):
             total_providers = len(providers)
 
             # Run all providers concurrently (asyncio.gather)
-            scan.progress_message = f"Running {total_providers} OSINT providers concurrently..."
+            scan.progress_message = f"Running {total_providers} OSINT providers concurrently against {target}..."
             await db.commit()
 
             tasks = []
             for ProviderClass in providers:
                 p = ProviderClass()
                 p.is_demo = False
-                tasks.append(_run_provider(p, scan.target_domain))
+                tasks.append(_run_provider(p, target))
 
             results_per_provider = await asyncio.gather(*tasks, return_exceptions=False)
             raw_results = []
