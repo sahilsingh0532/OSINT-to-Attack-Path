@@ -44,10 +44,10 @@ async def generate_report(scan_id: str, db: AsyncSession, sections: list = None,
     # Build report
     report = {
         "title": "OSINT-to-Attack-Path — Passive Reconnaissance Report",
-        "subtitle": "Automated Passive Reconnaissance & Risk Prioritization Framework",
+        "subtitle": "Automated Passive Reconnaissance & NIST SP 800-30 Risk Prioritization Framework",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "classification": "CONFIDENTIAL — Authorized Use Only",
-        "disclaimer": "This report is generated for authorized security testing, academic research, and controlled laboratory environments only. It does not constitute an active penetration test. All findings are based on passive reconnaissance of publicly available information.",
+        "disclaimer": "This report is generated for authorized security testing, academic research, and controlled laboratory environments only. It does not constitute an active penetration test. All findings are based on passive reconnaissance of publicly available information evaluated under NIST SP 800-30 Rev. 1 risk assessment standard.",
 
         "executive_summary": {
             "target": scan.target_domain,
@@ -59,18 +59,18 @@ async def generate_report(scan_id: str, db: AsyncSession, sections: list = None,
             "overall_risk_score": scan.overall_risk_score,
             "overall_risk_level": scan.overall_risk_level,
             "scan_duration": str(scan.completed_at - scan.created_at) if scan.completed_at else "N/A",
-            "summary": f"Passive reconnaissance of {scan.target_domain} identified {scan.total_findings} OSINT records from multiple sources. Data correlation revealed {scan.total_relationships} relationships between assets, {scan.total_exposures} potential exposure points, and {scan.total_attack_paths} attack hypotheses. The overall OSINT risk score is {scan.overall_risk_score}/100 ({scan.overall_risk_level})."
+            "summary": f"Passive reconnaissance of {scan.target_domain} identified {scan.total_findings} OSINT records from multiple sources. Data correlation revealed {scan.total_relationships} relationships between assets, {scan.total_exposures} potential exposure points, and {scan.total_attack_paths} attack hypotheses. Risk scoring was conducted using the NIST SP 800-30 Rev. 1 framework (Likelihood × Impact). The overall OSINT risk score is {scan.overall_risk_score}/100 ({scan.overall_risk_level})."
         },
 
         "scope": {
             "target_domain": scan.target_domain,
-            "methodology": "Passive OSINT Collection",
+            "methodology": "Passive OSINT Collection & NIST SP 800-30 Risk Assessment",
             "sources_used": list(set(f.source for f in findings)),
             "limitations": [
                 "This assessment uses only passive reconnaissance techniques.",
                 "No active scanning, exploitation, or authentication bypass was performed.",
                 "Findings are based on publicly available information only.",
-                "Risk scores are academic estimates and do not represent CVSS scores.",
+                "Risk prioritization is assessed in accordance with NIST SP 800-30 Rev. 1 semi-quantitative standards.",
                 "Some findings may be outdated — active validation is required.",
             ]
         },
@@ -81,10 +81,10 @@ async def generate_report(scan_id: str, db: AsyncSession, sections: list = None,
                 "Phase 2: Data Normalization and deduplication",
                 "Phase 3: Cross-source correlation and relationship mapping",
                 "Phase 4: Attack hypothesis generation from correlated data",
-                "Phase 5: Risk scoring using 4-factor model (Exposure × Confidence × Exploitability × Impact)",
+                "Phase 5: Risk scoring conforming to NIST SP 800-30 Rev. 1 (Threat Event Likelihood × Adverse Impact)",
                 "Phase 6: Defensive recommendation generation",
             ],
-            "note": "This is an academic risk-prioritization model and is not CVSS."
+            "note": "Risk assessment methodology conforms to NIST SP 800-30 Rev. 1 (Guide for Conducting Risk Assessments)."
         },
 
         "findings": [
@@ -126,6 +126,7 @@ async def generate_report(scan_id: str, db: AsyncSession, sections: list = None,
                     "exposure": rs.exposure,
                     "confidence": rs.confidence,
                     "exploitability": rs.exploitability,
+                    "likelihood": rs.likelihood,
                     "impact": rs.impact,
                     "composite_score": rs.composite_score,
                     "risk_level": rs.risk_level,
@@ -154,7 +155,7 @@ async def generate_report(scan_id: str, db: AsyncSession, sections: list = None,
             for rec in recommendations
         ],
 
-        "conclusion": f"The passive reconnaissance assessment of {scan.target_domain} reveals a {scan.overall_risk_level} risk posture based on publicly discoverable information. The most critical findings involve publicly accessible development infrastructure, exposed infrastructure-as-code repositories, and known vulnerable software versions. Immediate remediation is recommended for the {sum(1 for rs in risk_scores if rs.risk_level in ('CRITICAL', 'VERY HIGH'))} critical/very-high risk findings."
+        "conclusion": f"The passive reconnaissance assessment of {scan.target_domain} reveals a {scan.overall_risk_level} risk posture evaluated against the NIST SP 800-30 Rev. 1 standard based on publicly discoverable information. The most critical findings involve publicly accessible development infrastructure, exposed infrastructure-as-code repositories, and known vulnerable software versions. Immediate remediation is recommended for the {sum(1 for rs in risk_scores if rs.risk_level in ('CRITICAL', 'VERY HIGH'))} critical/very-high risk findings."
     }
 
     return report

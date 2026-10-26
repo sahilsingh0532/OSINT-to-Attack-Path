@@ -20,7 +20,7 @@ const useScanStore = create((set, get) => ({
   pollInterval: null,
 
   // Actions
-  startScan: async (targetDomain, mode = 'demo') => {
+  startScan: async (targetDomain, mode = 'live') => {
     set({ isLoading: true, error: null });
     try {
       const scan = await api.createScan({ target_domain: targetDomain, mode });

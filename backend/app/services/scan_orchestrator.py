@@ -318,7 +318,11 @@ async def run_scan(scan_id: str, db: AsyncSession):
         all_risk_scores = result.scalars().all()
         if all_risk_scores:
             scores = [rs.composite_score for rs in all_risk_scores]
-            scan.overall_risk_score = round(min(sum(scores) / len(scores) * 1.15, 100.0), 1)
+            # NIST SP 800-30 aggregate risk determination:
+            # Balances peak threat scenario severity (50%) with organization-wide average risk (50%)
+            max_risk = max(scores)
+            avg_risk = sum(scores) / len(scores)
+            scan.overall_risk_score = round(min(0.50 * max_risk + 0.50 * avg_risk, 100.0), 1)
             scan.overall_risk_level = RiskScore.get_risk_level(scan.overall_risk_score)
         else:
             scan.overall_risk_score = 0.0
@@ -382,6 +386,10 @@ def _generate_attack_paths(findings: list, scan) -> list:
     if ips:
         evidence_points.append(f"✓ {len(ips)} IP addresses identified via passive resolution")
 
+    # Path 1: External Surface Reconnaissance (NIST SP 800-30: Likelihood x Impact)
+    l1 = min(9.5, round(5.0 + min(len(subdomains), 20) * 0.2, 1))
+    i1 = min(9.0, round(5.0 + min(len(ips), 10) * 0.3, 1))
+    rs1 = min(100.0, round(l1 * i1, 1))
     paths.append({
         "title": f"External Surface Reconnaissance → {target}",
         "description": f"Passive OSINT reveals {len(subdomains)} subdomains and {len(ips)} IPs for {target}.",
@@ -391,8 +399,8 @@ def _generate_attack_paths(findings: list, scan) -> list:
             f"provide reliable targets for further authorized assessment."
         ),
         "validation_note": "Requires authorized active VAPT to validate exploitability.",
-        "risk_score": min(55.0 + len(subdomains) * 0.5, 85.0),
-        "risk_level": "HIGH" if len(subdomains) > 5 else "MEDIUM",
+        "risk_score": rs1,
+        "risk_level": RiskScore.get_risk_level(rs1),
         "entry_point": entry,
         "target_asset": f"External Attack Surface ({target})",
         "nodes": [
@@ -403,8 +411,10 @@ def _generate_attack_paths(findings: list, scan) -> list:
         ],
     })
 
-    # Path 2: Technology Exposure
+    # Path 2: Technology Exposure (NIST SP 800-30: L=7.0, I=6.0 -> 42.0 MODERATE)
     if techs:
+        l2, i2 = 7.0, 6.0
+        rs2 = min(100.0, round(l2 * i2, 1))
         paths.append({
             "title": f"Technology Fingerprinting → Potential Security Relevance",
             "description": f"{len(techs)} technology indicators observed across multiple passive sources.",
@@ -414,8 +424,8 @@ def _generate_attack_paths(findings: list, scan) -> list:
                 f"Security relevance: potential. Validation requires authorized testing."
             ),
             "validation_note": "Technology identification does not imply vulnerability. Authorized assessment required.",
-            "risk_score": 55.0,
-            "risk_level": "MEDIUM",
+            "risk_score": rs2,
+            "risk_level": RiskScore.get_risk_level(rs2),
             "entry_point": techs[0].value if techs else target,
             "target_asset": "Technology Stack",
             "nodes": [
@@ -425,8 +435,10 @@ def _generate_attack_paths(findings: list, scan) -> list:
             ],
         })
 
-    # Path 3: Code Repository Exposure
+    # Path 3: Code Repository Exposure (NIST SP 800-30: L=7.5, I=8.5 -> 63.8 HIGH)
     if repos:
+        l3, i3 = 7.5, 8.5
+        rs3 = min(100.0, round(l3 * i3, 1))
         paths.append({
             "title": "GitHub Repository → Code Intelligence",
             "description": f"{len(repos)} public repositories reference target. Code intelligence potential.",
@@ -436,8 +448,8 @@ def _generate_attack_paths(findings: list, scan) -> list:
                 "immediate credential rotation and repository audit."
             ),
             "validation_note": "Review all flagged files. Rotate any potentially exposed credentials immediately.",
-            "risk_score": 70.0,
-            "risk_level": "HIGH",
+            "risk_score": rs3,
+            "risk_level": RiskScore.get_risk_level(rs3),
             "entry_point": repos[0].value,
             "target_asset": "Source Code & Configuration",
             "nodes": [
@@ -448,8 +460,10 @@ def _generate_attack_paths(findings: list, scan) -> list:
             ],
         })
 
-    # Path 4: Threat Intelligence Flag
+    # Path 4: Threat Intelligence Flag (NIST SP 800-30: L=8.5, I=9.0 -> 76.5 HIGH/VERY HIGH)
     if threats:
+        l4, i4 = 8.5, 9.0
+        rs4 = min(100.0, round(l4 * i4, 1))
         paths.append({
             "title": "Threat Intelligence → Domain Risk",
             "description": f"Domain flagged in {len(threats)} threat intelligence sources.",
@@ -459,8 +473,8 @@ def _generate_attack_paths(findings: list, scan) -> list:
                 "requires immediate investigation."
             ),
             "validation_note": "Investigate threat feed entries. Contact threat intelligence provider for details.",
-            "risk_score": 78.0,
-            "risk_level": "VERY HIGH",
+            "risk_score": rs4,
+            "risk_level": RiskScore.get_risk_level(rs4),
             "entry_point": target,
             "target_asset": "Domain Reputation",
             "nodes": [

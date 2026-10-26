@@ -1,11 +1,10 @@
 {
   "name": "osint-to-attack-path",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
-    "build": "cd frontend && npm install && npm run build"
-  },
-  "dependencies": {
-    "firebase": "^12.18.0"
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "preview:frontend": "npm --prefix frontend run preview"
   }
 }

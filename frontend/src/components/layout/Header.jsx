@@ -3,8 +3,8 @@ import { Search, Play, Loader2, CheckCircle2, AlertTriangle, ToggleLeft, ToggleR
 import useScanStore from '../../stores/scanStore';
 
 export default function Header() {
-  const [target, setTarget] = useState('apexnova.example');
-  const [mode, setMode] = useState('demo');
+  const [target, setTarget] = useState('');
+  const [mode, setMode] = useState('live');
   const { currentScan, startScan, isLoading, generateReport } = useScanStore();
 
   const cleanTarget = (str) => {
@@ -68,7 +68,7 @@ export default function Header() {
           className="input-field"
           style={{ flex: 1 }}
           type="text"
-          placeholder="Enter target domain (e.g., apexnova.example)"
+          placeholder="Enter target domain (e.g., example.com, cloudflare.com)"
           value={target}
           onChange={(e) => setTarget(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleScan()}
@@ -78,7 +78,7 @@ export default function Header() {
 
       {/* Mode Toggle */}
       <button
-        onClick={() => setMode(mode === 'demo' ? 'live' : 'demo')}
+        onClick={() => setMode(mode === 'live' ? 'demo' : 'live')}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -87,14 +87,14 @@ export default function Header() {
           background: 'transparent',
           border: '1px solid var(--color-border)',
           borderRadius: '6px',
-          color: mode === 'demo' ? 'var(--color-cyber-green)' : 'var(--color-cyber-blue)',
+          color: mode === 'live' ? 'var(--color-cyber-blue)' : 'var(--color-cyber-green)',
           cursor: 'pointer',
           fontSize: '0.75rem',
           fontWeight: 600,
         }}
       >
-        {mode === 'demo' ? <ToggleLeft size={16} /> : <ToggleRight size={16} />}
-        {mode === 'demo' ? 'Demo Mode' : 'Live Mode'}
+        {mode === 'live' ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+        {mode === 'live' ? 'Live Mode' : 'Demo Mode'}
       </button>
 
       {/* Scan Button */}

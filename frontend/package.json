@@ -5,11 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "devDependencies": {
-    "typescript": "~6.0.2",
     "vite": "^8.2.0"
   },
   "dependencies": {
@@ -25,6 +24,7 @@
     "react-router-dom": "^7.18.2",
     "recharts": "^3.10.1",
     "tailwindcss": "^4.3.3",
+    "xlsx": "^0.18.5",
     "zustand": "^5.0.15"
   }
 }

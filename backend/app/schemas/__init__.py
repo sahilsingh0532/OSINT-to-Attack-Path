@@ -179,6 +179,7 @@ class RiskScoreOut(BaseModel):
     confidence: float
     exploitability: float
     impact: float
+    likelihood: Optional[float] = None
     composite_score: float
     risk_level: str
     rationale: Optional[str] = None

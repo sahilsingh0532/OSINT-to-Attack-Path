@@ -4,7 +4,8 @@ risk, recommendation, timeline, report, sources, and settings endpoints.
 """
 
 import asyncio
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+import re
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Response, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List, Optional
@@ -27,6 +28,8 @@ from app.schemas import (
 from app.services.scan_orchestrator import run_scan
 from app.services.reporter import generate_report
 from app.services.confidence import confidence_breakdown
+from app.services.email_lookup import lookup_email, export_email_intel_excel
+from app.services.username_lookup import lookup_username, export_username_intel_excel
 from app.collectors.registry import (
     get_all_providers, get_provider_health, PROVIDER_REGISTRY,
     test_all_providers, test_single_provider
@@ -206,6 +209,128 @@ async def get_emails(scan_id: str, db: AsyncSession = Depends(get_db)):
         .order_by(Finding.source_count.desc())
     )
     return result.scalars().all()
+
+
+# ─── Live Email OSINT Investigation & Excel Export ────────────────────────────
+
+@router.get("/email/lookup")
+async def get_email_lookup(email: str = Query(..., description="Target email address to investigate")):
+    """Run passive OSINT lookup across free intelligence tools for target email."""
+    result = await lookup_email(email)
+    if "error" in result and not result.get("sources_queried"):
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/email/lookup")
+async def post_email_lookup(payload: dict = Body(...)):
+    """Run passive OSINT lookup across free intelligence tools for target email."""
+    email = payload.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Missing 'email' field in request body.")
+    result = await lookup_email(email)
+    if "error" in result and not result.get("sources_queried"):
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.get("/email/export-excel")
+async def get_email_export_excel(email: str = Query(..., description="Target email to export")):
+    """Generate and download Excel report (.xlsx) for target email."""
+    data = await lookup_email(email)
+    excel_bytes = export_email_intel_excel(data)
+    clean_name = re.sub(r'[^a-zA-Z0-9_.-]', '_', email)
+    return Response(
+        content=excel_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="Email_Intel_{clean_name}.xlsx"'
+        }
+    )
+
+
+@router.post("/email/export-excel")
+async def post_email_export_excel(payload: dict = Body(...)):
+    """Generate and download Excel report (.xlsx) from email payload or target address."""
+    if "identity" in payload:
+        data = payload
+        email = payload.get("email", "investigation")
+    else:
+        email = payload.get("email")
+        if not email:
+            raise HTTPException(status_code=400, detail="Missing 'email' field in request body.")
+        data = await lookup_email(email)
+
+    excel_bytes = export_email_intel_excel(data)
+    clean_name = re.sub(r'[^a-zA-Z0-9_.-]', '_', email)
+    return Response(
+        content=excel_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="Email_Intel_{clean_name}.xlsx"'
+        }
+    )
+
+
+# ─── Live Username OSINT Investigation & Excel Export ─────────────────────────
+
+@router.get("/username/lookup")
+async def get_username_lookup(username: str = Query(..., description="Target username/handle to investigate")):
+    """Run passive OSINT lookup across free developer & intelligence tools for target username."""
+    result = await lookup_username(username)
+    if "error" in result and not result.get("sources_queried"):
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/username/lookup")
+async def post_username_lookup(payload: dict = Body(...)):
+    """Run passive OSINT lookup across free developer & intelligence tools for target username."""
+    username = payload.get("username")
+    if not username:
+        raise HTTPException(status_code=400, detail="Missing 'username' field in request body.")
+    result = await lookup_username(username)
+    if "error" in result and not result.get("sources_queried"):
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.get("/username/export-excel")
+async def get_username_export_excel(username: str = Query(..., description="Target username to export")):
+    """Generate and download Excel report (.xlsx) for target username."""
+    data = await lookup_username(username)
+    excel_bytes = export_username_intel_excel(data)
+    clean_name = re.sub(r'[^a-zA-Z0-9_.-]', '_', username)
+    return Response(
+        content=excel_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="Username_Intel_{clean_name}.xlsx"'
+        }
+    )
+
+
+@router.post("/username/export-excel")
+async def post_username_export_excel(payload: dict = Body(...)):
+    """Generate and download Excel report (.xlsx) from username payload or target handle."""
+    if "profile" in payload:
+        data = payload
+        username = payload.get("username", "investigation")
+    else:
+        username = payload.get("username")
+        if not username:
+            raise HTTPException(status_code=400, detail="Missing 'username' field in request body.")
+        data = await lookup_username(username)
+
+    excel_bytes = export_username_intel_excel(data)
+    clean_name = re.sub(r'[^a-zA-Z0-9_.-]', '_', username)
+    return Response(
+        content=excel_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="Username_Intel_{clean_name}.xlsx"'
+        }
+    )
 
 
 @router.get("/scans/{scan_id}/usernames", response_model=List[FindingOut])
@@ -517,7 +642,7 @@ async def get_settings():
         "virustotal_configured": bool(settings.virustotal_api_key),
         "censys_configured": bool(settings.censys_api_id),
         "hunter_configured": bool(settings.hunter_api_key),
-        "hibp_configured": bool(settings.hibp_api_key),
+        "xposedornot_configured": bool(settings.xposedornot_api_key),
         "emailrep_configured": bool(settings.emailrep_api_key),
         "firebase_configured": bool(settings.firebase_project_id),
         "securitytrails_configured": bool(settings.securitytrails_api_key),

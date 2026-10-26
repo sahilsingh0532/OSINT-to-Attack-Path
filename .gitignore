@@ -30,5 +30,8 @@ pnpm-debug.log*
 .vscode/
 .idea/
 
+# Firebase Cache
+.firebase/
+
 # OS
-.DS_Store
+.DS_Store

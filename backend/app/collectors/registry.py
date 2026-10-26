@@ -35,7 +35,7 @@ from app.collectors.dns.securitytrails import SecurityTrailsDnsCollector
 from app.collectors.email.hunter import HunterEmailCollector
 from app.collectors.email.emailrep import EmailRepCollector
 from app.collectors.email.github import GithubEmailCollector
-from app.collectors.email.hibp import HibpEmailCollector
+from app.collectors.email.xposedornot import XposedOrNotEmailCollector
 
 # Username providers
 from app.collectors.username.github import GithubUsernameCollector
@@ -92,7 +92,7 @@ PROVIDER_REGISTRY: Dict[str, List[Type[BaseCollector]]] = {
     "email": [
         GithubEmailCollector,
         HunterEmailCollector,
-        HibpEmailCollector,
+        XposedOrNotEmailCollector,
         EmailRepCollector,
     ],
     "username": [

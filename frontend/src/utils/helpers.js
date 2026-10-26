@@ -1,23 +1,46 @@
 export const getRiskColor = (level) => {
+  const normalized = String(level || '').toUpperCase().trim();
   const colors = {
     'CRITICAL': '#dc2626',
+    'CRITICAL RISK': '#dc2626',
+    'CRITICAL THREAT': '#dc2626',
     'VERY HIGH': '#ea580c',
     'HIGH': '#f59e0b',
+    'HIGH RISK': '#f59e0b',
     'MEDIUM': '#3b82f6',
+    'MODERATE': '#3b82f6',
+    'MODERATE RISK': '#3b82f6',
     'LOW': '#22c55e',
+    'LOW RISK': '#22c55e',
+    'VERY LOW': '#10b981',
+    'VERY LOW RISK': '#10b981',
+    'MINIMAL RISK': '#10b981',
+    'CLEAN': '#10b981',
+    'CLEAN / SECURE': '#10b981',
   };
-  return colors[level] || '#64748b';
+  return colors[normalized] || '#64748b';
 };
 
 export const getRiskBg = (level) => {
+  const normalized = String(level || '').toUpperCase().trim();
   const bgs = {
     'CRITICAL': 'risk-critical',
+    'CRITICAL RISK': 'risk-critical',
+    'CRITICAL THREAT': 'risk-critical',
     'VERY HIGH': 'risk-very-high',
     'HIGH': 'risk-high',
+    'HIGH RISK': 'risk-high',
     'MEDIUM': 'risk-medium',
+    'MODERATE': 'risk-medium',
+    'MODERATE RISK': 'risk-medium',
     'LOW': 'risk-low',
+    'LOW RISK': 'risk-low',
+    'VERY LOW': 'risk-low',
+    'VERY LOW RISK': 'risk-low',
+    'MINIMAL RISK': 'risk-low',
+    'CLEAN': 'risk-low',
   };
-  return bgs[level] || 'risk-low';
+  return bgs[normalized] || 'risk-low';
 };
 
 export const getNodeColor = (type) => {

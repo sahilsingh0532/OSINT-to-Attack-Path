@@ -22,7 +22,7 @@ SEVERITY_RULES = {
 
 
 def calculate_risk_scores_for_findings(findings_list: list) -> List[dict]:
-    """Calculate risk scores for a list of Finding objects or dicts."""
+    """Calculate NIST SP 800-30 Rev. 1 risk scores for a list of Finding objects or dicts."""
     risk_scores_data = []
 
     for f in findings_list:
@@ -37,13 +37,16 @@ def calculate_risk_scores_for_findings(findings_list: list) -> List[dict]:
             "rationale": f"OSINT finding of type {ftype}."
         })
 
-        exp = rule["exposure"]
-        expl = rule["exploitability"]
-        imp = rule["impact"]
+        exp = float(rule["exposure"])
+        expl = float(rule["exploitability"])
+        imp = float(rule["impact"])
         conf = float(confidence)
 
+        likelihood = RiskScore.calculate_likelihood(exp, conf, expl)
         composite = RiskScore.calculate_composite(exp, conf, expl, imp)
         level = RiskScore.get_risk_level(composite)
+
+        rationale = f"[NIST SP 800-30 Rev. 1] Likelihood: {likelihood}/10, Impact: {imp}/10. {rule['rationale']}"
 
         risk_scores_data.append({
             "finding_id": fid,
@@ -53,7 +56,8 @@ def calculate_risk_scores_for_findings(findings_list: list) -> List[dict]:
             "impact": imp,
             "composite_score": composite,
             "risk_level": level,
-            "rationale": rule["rationale"],
+            "rationale": rationale,
         })
 
     return risk_scores_data
+

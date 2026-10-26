@@ -9,3 +9,4 @@ dnspython
 networkx
 python-multipart
 jinja2
+openpyxl

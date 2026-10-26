@@ -32,7 +32,23 @@ export const getSubdomains = (scanId) => api.get(`/scans/${scanId}/subdomains`).
 export const getCertificates = (scanId) => api.get(`/scans/${scanId}/certificates`).then(r => r.data);
 export const getIPs = (scanId) => api.get(`/scans/${scanId}/ips`).then(r => r.data);
 export const getEmails = (scanId) => api.get(`/scans/${scanId}/emails`).then(r => r.data);
+export const lookupEmail = (email) => api.get('/email/lookup', { params: { email } }).then(r => r.data);
+export const exportEmailExcelUrl = (email) => `${baseURL}/email/export-excel?email=${encodeURIComponent(email)}`;
+export const downloadEmailExcel = (email, payload = null) => {
+  if (payload) {
+    return api.post('/email/export-excel', payload, { responseType: 'blob' }).then(r => r.data);
+  }
+  return api.get('/email/export-excel', { params: { email }, responseType: 'blob' }).then(r => r.data);
+};
 export const getUsernames = (scanId) => api.get(`/scans/${scanId}/usernames`).then(r => r.data);
+export const lookupUsername = (username) => api.get('/username/lookup', { params: { username } }).then(r => r.data);
+export const exportUsernameExcelUrl = (username) => `${baseURL}/username/export-excel?username=${encodeURIComponent(username)}`;
+export const downloadUsernameExcel = (username, payload = null) => {
+  if (payload) {
+    return api.post('/username/export-excel', payload, { responseType: 'blob' }).then(r => r.data);
+  }
+  return api.get('/username/export-excel', { params: { username }, responseType: 'blob' }).then(r => r.data);
+};
 export const getTechnologies = (scanId) => api.get(`/scans/${scanId}/technologies`).then(r => r.data);
 
 // ── Source comparison ──────────────────────────────────────────────────────

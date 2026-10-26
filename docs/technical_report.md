@@ -18,7 +18,7 @@ This framework resolves these challenges by introducing a passive **6-Stage Inte
 2. **Data Normalization:** Transformation of heterogeneous raw data into standardized JSON entities.
 3. **Graph Correlation:** Dynamic mapping of inter-asset relationships using a 12-rule graph correlation engine ($G = (V, E)$).
 4. **Attack Path Generation:** Algorithmic synthesis of multi-hop attack paths detailing potential threat vector escalation from exposure to crown-jewel assets.
-5. **Mathematical Risk Prioritization:** Application of a quantitative 4-factor risk calculation model ($E \times C \times Ex \times I$).
+5. **NIST SP 800-30 Risk Prioritization:** Application of NIST SP 800-30 Rev. 1 semi-quantitative risk calculation ($\text{Threat Likelihood} \times \text{Adverse Impact}$).
 6. **Defensive Mapping:** Automated correlation of mitigation controls, prioritized by operational effort and risk impact.
 
 The system is delivered via an enterprise-grade web application featuring 12 operational pages, dynamic Cytoscape.js attack surface graphs, dual Attacker/Defender analytical perspectives, and offline research/demo modes.
@@ -245,37 +245,37 @@ Public GitHub Repo (apexnova/core-api)
 
 ---
 
-## 6. Mathematical Risk Prioritization Engine
+## 6. NIST SP 800-30 Rev. 1 Risk Assessment Engine
 
-To avoid subjective risk ratings, the system implements a quantitative, reproducible 4-factor risk scoring engine (`risk_score.py`).
+To avoid subjective risk ratings and adhere to federal cybersecurity standards, the system implements a standardized semi-quantitative risk scoring engine adhering to **NIST SP 800-30 Rev. 1** (*Guide for Conducting Risk Assessments*, `risk_score.py`).
 
-### 6.1 Composite Risk Formula
-Each exposure finding is evaluated across four normalized dimensions ranging from $0.0$ to $10.0$:
+### 6.1 NIST SP 800-30 Risk Formula
+In accordance with NIST SP 800-30 Rev. 1 Section 3.2, risk is determined as a function of Threat Event Likelihood and Adverse Impact:
 
-$$\text{Composite Score} = \min\left(100.0, \frac{E \times C \times Ex \times I}{100.0}\right)$$
+$$\text{Risk Score} = \min\left(100.0, \text{Likelihood} \times \text{Impact}\right)$$
 
 Where:
-- $E \in [0.0, 10.0]$: **Exposure Factor** (Degree of accessibility via public OSINT).
-- $C \in [0.0, 10.0]$: **Confidence Score** (Reliability of OSINT evidence source).
-- $Ex \in [0.0, 10.0]$: **Exploitability Index** (Ease of exploitation, CVE availability, script availability).
-- $I \in [0.0, 10.0]$: **Business Impact** (Potential loss of confidentiality, integrity, or availability).
+- $\text{Likelihood} \in [0.0, 10.0]$: **Threat Event Likelihood**, combining threat event initiation/exposure ($E$), exploitability predisposition ($Ex$), modulated by OSINT evidence confidence ($C$):
+  $$\text{Likelihood} = \min\left(10.0, \frac{E + Ex}{2.0} \times (0.70 + 0.30 \times C)\right)$$
+- $\text{Impact} \in [0.0, 10.0]$: **Adverse Impact**, evaluating potential harm to organizational operations, assets, or data confidentiality, integrity, and availability.
+- $E \in [0.0, 10.0]$: **Exposure Level** (degree of visibility and accessibility across public OSINT surfaces).
+- $Ex \in [0.0, 10.0]$: **Exploitability Predisposition** (ease of weaponization, CVE presence, known exploit scripts).
+- $C \in [0.0, 1.0]$: **Assessment Confidence Factor** (reliability and corroboration of OSINT sources).
 
-### 6.2 Risk Level Mapping Thresholds
+### 6.2 NIST SP 800-30 Semi-Quantitative Risk Tiers
 
-| Composite Risk Score Range | Severity Level | UI Color Code | Operational Action Required |
+| NIST Score Range | NIST Risk Tier | UI Color Code | Operational Action Required |
 |---|---|---|---|
-| $0.0 - 20.0$ | **LOW** | `#10B981` (Emerald) | Monitor during routine maintenance cycles. |
-| $20.1 - 40.0$ | **MEDIUM** | `#3B82F6` (Blue) | Remediate within 30 days. |
-| $40.1 - 60.0$ | **HIGH** | `#F59E0B` (Amber) | Priority patch within 7 days. |
-| $60.1 - 80.0$ | **VERY HIGH** | `#EF4444` (Red) | Urgent containment within 48 hours. |
-| $80.1 - 100.0$ | **CRITICAL** | `#8B5CF6` (Purple) | Immediate emergency response (24 hours). |
+| $0.0 - 20.0$ | **VERY LOW / LOW** | `#10B981` (Emerald) | Monitor during routine passive OSINT audit cycles. |
+| $20.1 - 40.0$ | **LOW** | `#22C55E` (Green) | Address in planned scheduled maintenance. |
+| $40.1 - 60.0$ | **MODERATE (MEDIUM)** | `#3B82F6` (Blue) | Remediate within 30 days; review access controls. |
+| $60.1 - 80.0$ | **HIGH** | `#F59E0B` (Amber) | Priority containment within 7 days. |
+| $80.1 - 100.0$ | **VERY HIGH (CRITICAL)**| `#DC2626` (Red) | Emergency response within 24 hours. |
 
-### 6.3 Overall Organizational Risk Index
-The overall attack surface risk score $R_{\text{org}}$ is computed as a weighted average adjusted by risk concentration:
+### 6.3 NIST Aggregate Organizational Risk Determination
+The overall attack surface risk score $R_{\text{org}}$ balances peak threat scenario severity (50%) with organization-wide average risk (50%):
 
-$$R_{\text{org}} = \min\left(100.0, \left(\frac{1}{N} \sum_{i=1}^{N} S_i\right) \times 1.15\right)$$
-
-Where $S_i$ is the composite score of exposure finding $i$, and $1.15$ is the multi-vector risk amplification factor.
+$$R_{\text{org}} = \min\left(100.0, 0.50 \times \max(S_i) + 0.50 \times \frac{1}{N} \sum_{i=1}^{N} S_i\right)$$
 
 ---
 

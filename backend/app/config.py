@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     # Application
     app_name: str = "OSINT-to-Attack-Path"
     app_version: str = "2.0.0"
-    osint_mode: str = "demo"  # "demo" or "live"
+    osint_mode: str = "live"  # "demo" or "live"
 
     # Database (local SQLite)
     database_url: str = "sqlite+aiosqlite:///./osint_attack_path.db"
@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     # ── New API Keys (Phase 2 upgrade) ────────────────────────────────────
     # Email Intelligence
     hunter_api_key: Optional[str] = None          # Hunter.io — 25 req/month free
-    hibp_api_key: Optional[str] = None            # Have I Been Pwned — paid API
+    xposedornot_api_key: Optional[str] = None     # XposedOrNot — free (keyless), optional API key for higher limits
     emailrep_api_key: Optional[str] = None        # EmailRep.io — 100 req/day free
 
     # DNS / Subdomain

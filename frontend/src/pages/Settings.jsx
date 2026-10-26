@@ -19,7 +19,7 @@ export default function Settings() {
     { key: 'virustotal_configured',     label: 'VirusTotal API Key',      desc: 'Threat intelligence, domain reputation, and certificate lookups' },
     { key: 'censys_configured',         label: 'Censys API Key',          desc: 'Certificate and host search for infrastructure mapping' },
     { key: 'hunter_configured',         label: 'Hunter.io API Key',       desc: 'Email address discovery for target domain (25 req/month free)' },
-    { key: 'hibp_configured',           label: 'Have I Been Pwned Key',   desc: 'Breach database lookup for domain email addresses (paid API)' },
+    { key: 'xposedornot_configured',    label: 'XposedOrNot API Key',     desc: 'Breach database lookup & analytics (Free/no key needed by default, optional API key for higher rate limits)' },
     { key: 'emailrep_configured',       label: 'EmailRep API Key',        desc: 'Email reputation and risk scoring (100 req/day free)' },
     { key: 'securitytrails_configured', label: 'SecurityTrails API Key',  desc: 'Passive DNS, subdomain enumeration, and historical records' },
     { key: 'firebase_configured',       label: 'Firebase Project ID',     desc: 'Optional cloud sync layer for scan persistence across sessions' },

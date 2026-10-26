@@ -56,7 +56,7 @@ export default function Research() {
             { phase: 'Phase 2: Data Normalization', desc: 'Raw data from heterogeneous sources is normalized into a standardized format with confidence scoring and evidence classification (Observed, Inferred, Hypothesized).' },
             { phase: 'Phase 3: Cross-Source Correlation', desc: 'A graph-based correlation engine builds relationships between findings using 12 correlation rules. This is the core intelligence component that transforms individual data points into an attack surface map.' },
             { phase: 'Phase 4: Attack Path Generation', desc: 'Graph traversal algorithms identify potential attack chains from entry points through assets and weaknesses to potential impacts. All paths are labeled as hypotheses requiring authorized validation.' },
-            { phase: 'Phase 5: Risk Prioritization', desc: 'A transparent 4-factor risk model (Exposure × Confidence × Exploitability × Impact) scores each finding. This is an academic model, not CVSS.' },
+            { phase: 'Phase 5: Risk Prioritization', desc: 'Semi-quantitative risk scoring conforming to NIST SP 800-30 Rev. 1: Risk = Threat Event Likelihood (Exposure, Exploitability, Confidence) × Adverse Impact on a 0–100 scale.' },
             { phase: 'Phase 6: Defensive Recommendations', desc: 'Automated defensive recommendations are generated for each high-risk finding, categorized by security control type and implementation effort.' },
           ].map((m, i) => (
             <div key={i} style={{ paddingLeft: '1rem', borderLeft: '3px solid var(--color-cyber-purple)' }}>
